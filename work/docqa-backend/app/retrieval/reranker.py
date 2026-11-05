@@ -12,21 +12,30 @@ import os
 from functools import lru_cache
 from typing import Any
 
-import torch
-from sentence_transformers import CrossEncoder
+try:
+    import torch
+except ImportError:
+    torch = None
+
+try:
+    from sentence_transformers import CrossEncoder
+except ImportError:
+    CrossEncoder = None
 
 DEFAULT_RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
 
 @lru_cache(maxsize=1)
-def get_reranker() -> CrossEncoder:
+def get_reranker():
     """Instantiate and cache the CrossEncoder model singleton.
 
     Detects GPU (CUDA) if available; otherwise falls back gracefully to CPU.
     The model name can be overridden using the RERANKER_MODEL environment variable.
     """
+    if CrossEncoder is None:
+        raise RuntimeError("sentence-transformers is not installed.")
     model_name = os.getenv("RERANKER_MODEL", DEFAULT_RERANKER_MODEL)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    device = "cuda" if (torch is not None and torch.cuda.is_available()) else "cpu"
     return CrossEncoder(model_name, device=device)
 
 

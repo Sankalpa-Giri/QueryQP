@@ -1,13 +1,23 @@
 from functools import lru_cache
-import torch
-from langchain_huggingface import HuggingFaceEmbeddings
+
+try:
+    import torch
+except ImportError:
+    torch = None
+
+try:
+    from langchain_huggingface import HuggingFaceEmbeddings
+except ImportError:
+    HuggingFaceEmbeddings = None
 MODEL_NAME = "BAAI/bge-small-en-v1.5"
 
 
 @lru_cache(maxsize=1)
-def get_embeddings() -> HuggingFaceEmbeddings:
+def get_embeddings():
     """Instantiate the LangChain HuggingFaceEmbeddings wrapper once."""
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if HuggingFaceEmbeddings is None:
+        raise RuntimeError("HuggingFaceEmbeddings is not installed.")
+    device = "cuda" if (torch is not None and torch.cuda.is_available()) else "cpu"
     return HuggingFaceEmbeddings(
         model_name=MODEL_NAME,
         model_kwargs={"device": device},          # or "cuda" if GPU is available

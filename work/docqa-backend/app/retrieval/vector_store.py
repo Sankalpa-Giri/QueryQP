@@ -3,8 +3,14 @@ from pathlib import Path
 from uuid import NAMESPACE_URL, uuid5
 
 from langchain_core.documents import Document
-from langchain_qdrant import QdrantVectorStore
-from qdrant_client import QdrantClient, models
+
+try:
+    from langchain_qdrant import QdrantVectorStore
+    from qdrant_client import QdrantClient, models
+except ImportError:
+    QdrantVectorStore = None
+    QdrantClient = None
+    models = None
 
 from app.retrieval.embeddings import get_embeddings
 
@@ -14,8 +20,10 @@ QDRANT_DIRECTORY = PROJECT_ROOT / "data" / "qdrant"
 
 
 @lru_cache(maxsize=1)
-def _get_vector_store() -> QdrantVectorStore:
+def _get_vector_store():
     """Initialize or reuse the local embedded QdrantVectorStore."""
+    if QdrantVectorStore is None or QdrantClient is None:
+        raise RuntimeError("Qdrant client or vectorstore is not installed.")
     QDRANT_DIRECTORY.mkdir(parents=True, exist_ok=True)
     client = QdrantClient(path=str(QDRANT_DIRECTORY))
 

@@ -9,6 +9,10 @@
 .env.development.local
 .env.test.local
 .env.production.local
+*.pem
+*.key
+*.cer
+*.crt
 
 # Allow example / template files to be tracked
 !.env.example

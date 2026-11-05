@@ -4,14 +4,21 @@
 import os
 from pathlib import Path
 
-from dotenv import load_dotenv
+try:
+    from dotenv import load_dotenv
+    # Always load the backend's .env file, regardless of the terminal's directory.
+    load_dotenv(Path(__file__).resolve().parents[2] / ".env")
+except ImportError:
+    pass
 
-# Always load the backend's .env file, regardless of the terminal's directory.
-load_dotenv(Path(__file__).resolve().parents[2] / ".env")
 from fastapi import HTTPException, status
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_groq import ChatGroq
+
+try:
+    from langchain_groq import ChatGroq
+except ImportError:
+    ChatGroq = None
 
 
 from app.llm.prompts import GROUNDING_INSTRUCTIONS, build_structured_prompt
@@ -23,6 +30,12 @@ def generate_grounded_answer(
     chunks: list[dict],
     intent: SearchIntent = SearchIntent.GENERAL,
 ) -> str:
+    if ChatGroq is None:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Groq LLM integration is not available (langchain-groq is not installed).",
+        )
+
     # Resolve the API Key
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key:
