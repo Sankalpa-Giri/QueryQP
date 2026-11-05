@@ -7,9 +7,9 @@ RUN npm ci
 
 COPY . .
 
-# Build Next.js application with memory limit for cloud instances
+# Build Next.js application
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_OPTIONS="--max-old-space-size=1536"
+ENV NODE_OPTIONS="--max-old-space-size=1024"
 RUN npm run build
 
 FROM node:20-alpine AS runner
@@ -19,12 +19,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-COPY package*.json ./
-RUN npm ci --only=production
-
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
 
 EXPOSE 3000
 
