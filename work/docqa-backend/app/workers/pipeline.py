@@ -1,0 +1,198 @@
+import logging
+import uuid
+from typing import Any
+
+from sqlalchemy.orm import Session
+
+from app.db.session import SessionLocal
+from app.ingestion.providers import get_document_parser
+from app.ingestion.question_segmenter import segment_questions_from_parsed
+from app.models.batch import QuestionPaperBatch
+from app.models.document import QuestionPaper
+from app.models.enums import BatchStatus, ProcessingStage, PublicationStatus, ReviewStatus, StageStatus
+from app.models.job import ProcessingJob
+from app.models.question import Question, QuestionTopic
+from app.retrieval.embeddings import embed_texts
+
+from app.services.storage_service import storage_service
+from app.services.subject_service import assign_question_topics
+
+logger = logging.getLogger(__name__)
+
+
+
+def run_document_pipeline_sync(document_id: str, parser_type: str | None = None) -> bool:
+    """Synchronous execution of the document parsing, question segmentation, and indexing pipeline."""
+    db = SessionLocal()
+    try:
+        return _execute_document_pipeline(document_id, db, parser_type)
+    finally:
+        db.close()
+
+
+def _execute_document_pipeline(document_id: str, db: Session, parser_type: str | None = None) -> bool:
+    doc = db.query(QuestionPaper).filter(QuestionPaper.id == document_id).first()
+    if not doc:
+        logger.error("Document %s not found for processing", document_id)
+        return False
+
+    # Initialize or fetch processing job
+    job = (
+        db.query(ProcessingJob)
+        .filter(ProcessingJob.document_id == document_id)
+        .order_by(ProcessingJob.created_at.desc())
+        .first()
+    )
+    if not job:
+        job = ProcessingJob(
+            batch_id=doc.batch_id,
+            document_id=doc.id,
+            stage=ProcessingStage.PARSE,
+            status=StageStatus.RUNNING,
+            progress=0.1,
+        )
+        db.add(job)
+        db.commit()
+
+    try:
+        # ================= STAGE 1: PARSE =================
+        job.stage = ProcessingStage.PARSE
+        job.status = StageStatus.RUNNING
+        job.progress = 0.2
+        doc.parser_status = StageStatus.RUNNING
+        db.commit()
+
+        file_path = storage_service.get_document_path(doc.storage_key)
+        parser = get_document_parser(parser_type)
+        parsed_result = parser.parse(file_path)
+
+        # Store intermediate Markdown representation
+        md_key = storage_service.save_markdown(doc.id, parsed_result.markdown)
+        doc.markdown_key = md_key
+        doc.page_count = parsed_result.page_count
+        doc.parser_status = StageStatus.COMPLETED
+        doc.parser_version = f"{parsed_result.parser_name}:{parsed_result.parser_version}"
+        job.progress = 0.5
+        db.commit()
+
+        # ================= STAGE 2: SEGMENT QUESTIONS =================
+        job.stage = ProcessingStage.SEGMENT
+        job.status = StageStatus.RUNNING
+        doc.extraction_status = StageStatus.RUNNING
+        db.commit()
+
+        extracted_questions = segment_questions_from_parsed(parsed_result)
+
+        # Idempotent cleanup: Remove existing questions and associations if reprocessing
+        existing_q_ids = [q[0] for q in db.query(Question.id).filter(Question.document_id == doc.id).all()]
+        if existing_q_ids:
+            db.query(QuestionTopic).filter(QuestionTopic.question_id.in_(existing_q_ids)).delete(synchronize_session=False)
+            db.query(Question).filter(Question.document_id == doc.id).delete()
+
+        created_questions: list[Question] = []
+        for eq in extracted_questions:
+            q_row = Question(
+                id=str(uuid.uuid4()),
+                document_id=doc.id,
+                subject_id=doc.subject_id,
+                question_number=eq.question_number,
+                question_text=eq.question_text,
+                normalized_text=eq.normalized_text,
+                page_number=eq.page_number,
+                page_end=eq.page_end,
+                marks=eq.marks,
+                bbox=eq.bbox,
+                topics=[],
+                review_status=ReviewStatus.PENDING,
+                publication_status=PublicationStatus.DRAFT,
+            )
+            db.add(q_row)
+            created_questions.append(q_row)
+
+        db.flush()
+
+        # Classify and link questions to subject topic taxonomy
+        for q_row in created_questions:
+            assign_question_topics(db, q_row)
+
+        doc.extraction_status = StageStatus.COMPLETED
+        job.progress = 0.8
+        db.commit()
+
+        # ================= STAGE 3: EMBED & INDEX =================
+        job.stage = ProcessingStage.INDEX
+        job.status = StageStatus.RUNNING
+        doc.indexing_status = StageStatus.RUNNING
+        db.commit()
+
+        if created_questions:
+            q_texts = [q.question_text for q in created_questions]
+            embeddings = embed_texts(q_texts)
+            for q, emb in zip(created_questions, embeddings):
+                q.embedding_json = emb
+
+        doc.indexing_status = StageStatus.COMPLETED
+        doc.publication_status = PublicationStatus.DRAFT
+        doc.error_message = None
+
+
+        job.stage = ProcessingStage.INDEX
+        job.status = StageStatus.COMPLETED
+        job.progress = 1.0
+        job.error_message = None
+        db.commit()
+
+        # Update batch counters
+        _update_batch_progress(doc.batch_id, db)
+        return True
+
+    except Exception as err:
+        logger.exception("Processing failed for document %s: %s", document_id, err)
+        error_msg = str(err)
+
+        doc.parser_status = StageStatus.FAILED
+        doc.extraction_status = StageStatus.FAILED
+        doc.indexing_status = StageStatus.FAILED
+        doc.error_message = error_msg
+
+        job.status = StageStatus.FAILED
+        job.error_message = error_msg
+        job.retry_count += 1
+        db.commit()
+
+        _update_batch_progress(doc.batch_id, db)
+        return False
+
+
+def _update_batch_progress(batch_id: str, db: Session) -> None:
+    """Recalculate batch statistics based on member documents."""
+    batch = db.query(QuestionPaperBatch).filter(QuestionPaperBatch.id == batch_id).first()
+    if not batch:
+        return
+
+    docs = db.query(QuestionPaper).filter(QuestionPaper.batch_id == batch_id).all()
+    batch.total_files = len(docs)
+
+    def is_completed(s) -> bool:
+        v = s.value if hasattr(s, "value") else str(s)
+        return v.upper() == "COMPLETED"
+
+    def is_failed(s) -> bool:
+        v = s.value if hasattr(s, "value") else str(s)
+        return v.upper() == "FAILED"
+
+    batch.processed_count = sum(1 for d in docs if is_completed(d.extraction_status))
+    batch.failed_count = sum(1 for d in docs if is_failed(d.extraction_status))
+
+    if batch.total_files > 0 and (batch.processed_count + batch.failed_count >= batch.total_files):
+        if batch.failed_count == 0:
+            batch.status = BatchStatus.COMPLETED
+        elif batch.processed_count > 0:
+            batch.status = BatchStatus.PARTIALLY_FAILED
+        else:
+            batch.status = BatchStatus.FAILED
+    else:
+        batch.status = BatchStatus.PROCESSING
+
+    db.commit()
+
