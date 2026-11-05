@@ -137,7 +137,7 @@ export default function StudentPortalPage() {
             </div>
             <div>
               <h1 className="text-lg font-bold tracking-tight text-slate-900 leading-none">
-                PYQ Recommender
+                QueryQP
               </h1>
               <span className="text-xs text-slate-500 font-medium">
                 Academic Exam Question Retrieval
@@ -482,7 +482,7 @@ export default function StudentPortalPage() {
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-200 bg-white py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-400">
-          PYQ Recommender System &bull; Previous Year Question Knowledge Base with Verifiable Provenance.
+          QueryQP &bull; Previous Year Question Knowledge Base with Verifiable Provenance.
         </div>
       </footer>
     </div>

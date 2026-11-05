@@ -2,7 +2,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata = {
-  title: "PYQ Recommender | Academic Previous Year Question System",
+  title: "QueryQP | Academic Previous Year Question System",
   description: "Search and retrieve previous-year university exam questions with verifiable source provenance.",
 };
 

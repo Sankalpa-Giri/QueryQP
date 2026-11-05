@@ -12,7 +12,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    PROJECT_NAME: str = "PYQ Recommender System"
+    PROJECT_NAME: str = "QueryQP"
     API_V1_PREFIX: str = "/api/v1"
     DEBUG: bool = False
 

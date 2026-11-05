@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version="1.0.0",
-    description="Full-stack Previous Year Question (PYQ) Recommender & Management System",
+    description="QueryQP - Full-stack Previous Year Question Recommender & Management System",
     lifespan=lifespan,
 )
 

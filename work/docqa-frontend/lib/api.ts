@@ -1,4 +1,26 @@
-export const API_BASE = process.env.NEXT_PUBLIC_API_URL !== undefined ? process.env.NEXT_PUBLIC_API_URL : "";
+// Dynamically resolve API URL:
+// In the browser, use relative paths ("/api/v1") when accessed remotely so that requests
+// route through Nginx without CORS errors or localhost connection failures.
+export const API_BASE = (function () {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (typeof window !== "undefined") {
+    const isLocalhost =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
+    if (!isLocalhost && envUrl && (envUrl.includes("localhost") || envUrl.includes("127.0.0.1"))) {
+      return "";
+    }
+    if (envUrl && envUrl.trim() !== "") {
+      return envUrl.replace(/\/+$/, "");
+    }
+    return "";
+  }
+  if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
+    return envUrl.replace(/\/+$/, "");
+  }
+  return "";
+})();
+
 export const API_V1 = `${API_BASE}/api/v1`;
 
 // Token & User storage keys

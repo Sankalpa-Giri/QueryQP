@@ -35,7 +35,7 @@ export default function AdminLoginPage() {
           <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-white mx-auto shadow-lg shadow-blue-500/30">
             <Shield className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Admin Sign In</h1>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">QueryQP Admin Sign In</h1>
           <p className="text-xs text-slate-500">
             Manage question papers, extraction pipelines, and knowledge base
           </p>

@@ -157,7 +157,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="md:hidden flex items-center justify-between bg-slate-900 text-white px-4 py-3 border-b border-slate-800">
         <div className="flex items-center space-x-2">
           <Shield className="w-5 h-5 text-blue-400" />
-          <span className="font-bold text-sm">PYQ Admin</span>
+          <span className="font-bold text-sm">QueryQP Admin</span>
         </div>
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -180,7 +180,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
           <div>
             <h2 className="text-sm font-bold tracking-tight text-white leading-none">
-              PYQ Admin
+              QueryQP Admin
             </h2>
             <span className="text-[10px] text-slate-400 font-medium">
               Management Portal
