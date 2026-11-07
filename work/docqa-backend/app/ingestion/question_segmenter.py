@@ -319,7 +319,7 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
             if q_num_str and q_num_str.isdigit():
                 val = int(q_num_str)
                 # Valid next main question is 1, or sequential (current + 1), or current (with subquestion)
-                if current_main_num is None or val == current_main_num + 1 or val == current_main_num:
+                if current_main_num is None or val >= 1:
                     flush()
                     current_main_num = val
                     current_sub_letter = sub_let.lower() if sub_let else None
@@ -408,7 +408,7 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
                 current_marks = line_marks
         else:
             # If line has question content before explicit number
-            if any(kw in text.lower() for kw in ["explain", "describe", "what is", "prove", "write a", "calculate"]):
+            if any(kw in text.lower() for kw in ["explain", "describe", "what is", "prove", "write", "calculate", "define", "differentiate", "state", "show", "discuss", "illustrate", "design", "find", "compare", "draw", "derive", "give", "list", "convert", "evaluate", "implement", "construct"]):
                 current_main_num = auto_q_idx
                 current_lines.append(text)
                 current_boxes.append(bbox)
@@ -418,6 +418,29 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
         idx += 1
 
     flush()
+    if not questions:
+        if result.markdown and result.markdown.strip():
+            questions = _segment_from_markdown(result.markdown)
+
+    if not questions and result.pages:
+        auto_idx = 1
+        for page in result.pages:
+            for el in page.elements:
+                clean_t = re.sub(r"\s+", " ", el.text).strip()
+                if len(clean_t) >= 20 and not any(h in clean_t.lower() for h in ["page", "full marks", "time:", "semester", "kiit", "branch:"]):
+                    questions.append(
+                        ExtractedQuestion(
+                            question_number=f"Q{auto_idx}",
+                            question_text=clean_t,
+                            normalized_text=normalize_query_text(clean_t),
+                            page_number=page.page_number,
+                            page_end=page.page_number,
+                            marks=extract_marks(clean_t) or 5.0,
+                            bbox=el.bbox,
+                        )
+                    )
+                    auto_idx += 1
+
     return split_inline_subquestions(questions)
 
 
@@ -489,5 +512,23 @@ def _segment_from_markdown(markdown: str) -> list[ExtractedQuestion]:
                 bbox=default_page_bbox,
             )
         )
+
+    if not questions and blocks:
+        auto_idx = 1
+        for b in blocks:
+            clean_t = re.sub(r"\s+", " ", b).strip()
+            if len(clean_t) >= 20 and not any(h in clean_t.lower() for h in ["page", "full marks", "time:", "semester", "kiit", "branch:"]):
+                questions.append(
+                    ExtractedQuestion(
+                        question_number=f"Q{auto_idx}",
+                        question_text=clean_t,
+                        normalized_text=normalize_query_text(clean_t),
+                        page_number=1,
+                        page_end=1,
+                        marks=extract_marks(clean_t) or 5.0,
+                        bbox=default_page_bbox,
+                    )
+                )
+                auto_idx += 1
 
     return split_inline_subquestions(questions)

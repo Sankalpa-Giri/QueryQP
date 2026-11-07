@@ -12,6 +12,7 @@ from app.models.enums import (
 )
 from app.models.job import ProcessingJob
 from app.models.question import Question, QuestionTopic, Topic
+from app.models.slide import Slide
 from app.models.subject import Subject
 from app.models.user import AdminUser
 
@@ -24,6 +25,7 @@ __all__ = [
     "Topic",
     "QuestionTopic",
     "ProcessingJob",
+    "Slide",
     "DocumentAsset",
     "AuditLog",
     "ExamType",

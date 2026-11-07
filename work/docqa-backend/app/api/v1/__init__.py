@@ -9,6 +9,8 @@ from app.api.v1.documents import public_router as documents_public_router
 from app.api.v1.questions import admin_router as questions_admin_router
 from app.api.v1.questions import public_router as questions_public_router
 from app.api.v1.search import router as search_router
+from app.api.v1.slides import admin_router as slides_admin_router
+from app.api.v1.slides import public_router as slides_public_router
 from app.api.v1.subjects import admin_router as subjects_admin_router
 from app.api.v1.subjects import public_router as subjects_public_router
 
@@ -25,4 +27,6 @@ api_v1_router.include_router(documents_public_router)
 api_v1_router.include_router(questions_admin_router)
 api_v1_router.include_router(questions_public_router)
 api_v1_router.include_router(search_router)
+api_v1_router.include_router(slides_public_router)
+api_v1_router.include_router(slides_admin_router)
 api_v1_router.include_router(ai_prep_router)

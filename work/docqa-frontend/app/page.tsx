@@ -11,20 +11,20 @@ import {
   solveQuestionAI,
   chatWithPYQAssistant,
   fetchSubjectAnalytics,
-  generateTopicQuiz,
-  generateMockPaper,
-  fetchPublicQuestions,
+  fetchProfessorSlides,
   Question,
   SearchResponse,
   Subject,
   SolveQuestionResponse,
   PYQChatResponse,
   SubjectAnalyticsResponse,
-  QuizGenerateResponse,
-  MockPaperResponse,
+  SlideItem,
+  ProfessorSlidesItem,
+  getSlideDownloadUrl,
 } from "../lib/api";
 
 import { SourceViewerModal } from "../components/SourceViewerModal";
+import { SlideViewerModal } from "../components/SlideViewerModal";
 import {
   Search,
   BookOpen,
@@ -39,13 +39,13 @@ import {
   Image as ImageIcon,
   MessageSquare,
   BarChart3,
-  CheckCircle2,
-  BrainCircuit,
-  FileText,
-  FolderOpen,
+  Presentation,
+  Download,
+  Eye,
+  User,
+  GraduationCap,
+  Layers,
   Repeat,
-  Printer,
-  RotateCcw,
 } from "lucide-react";
 import {
   FormattedQuestionContent,
@@ -62,7 +62,7 @@ const SUGGESTED_TOPICS = [
   "SQL normalization 3NF and BCNF",
 ];
 
-type PortalTab = "search" | "chat" | "analytics" | "quiz" | "mock" | "archive";
+type PortalTab = "search" | "slides" | "chat" | "analytics";
 
 function FormattedQuestionText({ text }: { text: string; query?: string }) {
   return <FormattedQuestionContent text={text} />;
@@ -89,6 +89,11 @@ export default function StudentPortalPage() {
   const [solutionsMap, setSolutionsMap] = useState<Record<string, SolveQuestionResponse>>({});
   const [solvingId, setSolvingId] = useState<string | null>(null);
 
+  // Slides State
+  const [selectedProfessorName, setSelectedProfessorName] = useState<string>("");
+  const [slidesSearch, setSlidesSearch] = useState<string>("");
+  const [inspectSlide, setInspectSlide] = useState<SlideItem | null>(null);
+
   // AI Chat state
   const [chatInput, setChatInput] = useState<string>("");
   const [chatLoading, setChatLoading] = useState<boolean>(false);
@@ -103,19 +108,6 @@ export default function StudentPortalPage() {
 
   // Analytics & Score Predictor state
   const [checkedTopics, setCheckedTopics] = useState<Record<string, boolean>>({});
-
-  // Quiz state
-  const [quizTopic, setQuizTopic] = useState<string>("");
-  const [quizData, setQuizData] = useState<QuizGenerateResponse | null>(null);
-  const [quizLoading, setQuizLoading] = useState<boolean>(false);
-  const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});
-  const [quizSubmitted, setQuizSubmitted] = useState<boolean>(false);
-
-  // Mock Paper state
-  const [mockExamType, setMockExamType] = useState<string>("ENDSEM");
-  const [mockPaper, setMockPaper] = useState<MockPaperResponse | null>(null);
-  const [mockLoading, setMockLoading] = useState<boolean>(false);
-  const [showMockSolutions, setShowMockSolutions] = useState<boolean>(false);
 
   // Fetch subjects list
   const { data: subjects = [] } = useQuery<Subject[]>({
@@ -162,20 +154,29 @@ export default function StudentPortalPage() {
   const { data: analyticsData, isLoading: loadingAnalytics } = useQuery<SubjectAnalyticsResponse>({
     queryKey: ["subject-analytics", effectiveAnalyticsSubjectId],
     queryFn: () => fetchSubjectAnalytics(effectiveAnalyticsSubjectId),
-    enabled: Boolean(effectiveAnalyticsSubjectId && (activeTab === "analytics" || activeTab === "quiz" || activeTab === "mock")),
+    enabled: Boolean(effectiveAnalyticsSubjectId && activeTab === "analytics"),
   });
 
-  // Public Archive query
-  const { data: archiveQuestions = [], isLoading: loadingArchive } = useQuery<Question[]>({
-    queryKey: ["public-archive", selectedSubjectId, examType],
-    queryFn: () =>
-      fetchPublicQuestions({
-        subject_id: selectedSubjectId || undefined,
-        exam_type: examType || undefined,
-        limit: 50,
-      }),
-    enabled: activeTab === "archive",
+  // Slides Query
+  const { data: slidesResponse, isLoading: loadingSlides } = useQuery({
+    queryKey: ["professor-slides", selectedSubjectId, slidesSearch],
+    queryFn: () => fetchProfessorSlides(selectedSubjectId || undefined, slidesSearch || undefined),
+    enabled: activeTab === "slides",
   });
+
+  // Ensure professors are in Alphabetical Order
+  const professorsList: ProfessorSlidesItem[] = (slidesResponse?.professors || []).slice().sort(
+    (a, b) => a.professor_name.localeCompare(b.professor_name)
+  );
+
+  const effectiveSelectedProfessor =
+    selectedProfessorName && professorsList.some((p) => p.professor_name === selectedProfessorName)
+      ? selectedProfessorName
+      : professorsList[0]?.professor_name || "";
+
+  const activeProfessorData = professorsList.find(
+    (p) => p.professor_name === effectiveSelectedProfessor
+  );
 
   // Pre-select top 2 topics when analytics loads
   useEffect(() => {
@@ -260,40 +261,6 @@ export default function StudentPortalPage() {
     }
   };
 
-  const handleStartQuiz = async () => {
-    setQuizLoading(true);
-    setQuizAnswers({});
-    setQuizSubmitted(false);
-    try {
-      const res = await generateTopicQuiz({
-        subject_id: effectiveAnalyticsSubjectId || undefined,
-        topic_name: quizTopic || undefined,
-        num_questions: 5,
-      });
-      setQuizData(res);
-    } catch {
-      // ignore
-    } finally {
-      setQuizLoading(false);
-    }
-  };
-
-  const handleGenerateMock = async () => {
-    if (!effectiveAnalyticsSubjectId) return;
-    setMockLoading(true);
-    try {
-      const res = await generateMockPaper({
-        subject_id: effectiveAnalyticsSubjectId,
-        exam_type: mockExamType,
-      });
-      setMockPaper(res);
-    } catch {
-      // ignore
-    } finally {
-      setMockLoading(false);
-    }
-  };
-
   // Calculate predicted score from checked topics
   const totalCoveredWeight = analyticsData
     ? analyticsData.topics.reduce(
@@ -304,11 +271,6 @@ export default function StudentPortalPage() {
   const clampedCoverage = Math.min(100, Math.round(totalCoveredWeight));
   const predictedMidsem = Math.round((clampedCoverage / 100) * 20);
   const predictedEndsem = Math.round((clampedCoverage / 100) * 50);
-
-  const quizCorrectCount =
-    quizData && quizSubmitted
-      ? quizData.questions.filter((q) => quizAnswers[q.id] === q.correct_index).length
-      : 0;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
@@ -324,7 +286,7 @@ export default function StudentPortalPage() {
                 QueryQP Intelligence
               </h1>
               <span className="text-xs text-slate-500 font-medium">
-                KIIT PYQ Recommender, AI Solver & Exam-Prep Suite
+                KIIT PYQ Recommender, Lecture Slides &amp; AI Solver
               </span>
             </div>
           </div>
@@ -347,25 +309,23 @@ export default function StudentPortalPage() {
         <div className="text-center max-w-3xl mx-auto space-y-3">
           <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-medium">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Okapi BM25 + BGE Hybrid Search &bull; AI Step-by-Step Solver &bull; Exact Page Provenance</span>
+            <span>Okapi BM25 + BGE Hybrid Search &bull; Professor Lecture Slides &bull; AI Step-by-Step Solver</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900">
-            Every University Past Paper, Searchable & Explained
+            University Past Papers &amp; Professor Lecture Slides
           </h2>
           <p className="text-slate-600 text-sm md:text-base">
-            Search verified previous year questions, get step-by-step AI solutions, track topic weightage & predicted scores, take interactive quizzes, and generate mock papers.
+            Search verified previous year questions, access topic-wise professor presentation slides, get grounded AI step-by-step solutions, and discover syllabus topic exam weightage.
           </p>
         </div>
 
-        {/* 6-Tab Feature Switcher */}
-        <div className="flex flex-wrap items-center justify-center gap-2 bg-white p-2 rounded-2xl border border-slate-200 shadow-xs max-w-4xl mx-auto">
+        {/* 4-Tab Feature Switcher: Search PYQs -> Slides -> AI Assistant -> Discover & Score Predictor */}
+        <div className="flex flex-wrap items-center justify-center gap-2 bg-white p-2 rounded-2xl border border-slate-200 shadow-xs max-w-3xl mx-auto">
           {[
             { id: "search", label: "Search PYQs", icon: Search },
+            { id: "slides", label: "Professor Slides", icon: Presentation },
             { id: "chat", label: "AI Assistant", icon: MessageSquare },
             { id: "analytics", label: "Discover & Score Predictor", icon: BarChart3 },
-            { id: "quiz", label: "Take an AI Quiz", icon: BrainCircuit },
-            { id: "mock", label: "Mock Exam Generator", icon: FileText },
-            { id: "archive", label: "Browse Archive", icon: FolderOpen },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -387,8 +347,8 @@ export default function StudentPortalPage() {
           })}
         </div>
 
-        {/* Global Subject Filter Bar for Non-Search Tabs */}
-        {activeTab !== "search" && (
+        {/* Global Subject Filter Bar for Chat & Analytics */}
+        {(activeTab === "chat" || activeTab === "analytics") && (
           <div className="bg-white rounded-2xl border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4 shadow-xs">
             <div className="flex items-center space-x-3">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -411,7 +371,7 @@ export default function StudentPortalPage() {
               </select>
             </div>
             <div className="text-xs text-slate-500">
-              All solutions, topic weightages, and mock exams are strictly grounded in reviewed university papers.
+              All answers, solutions, and topic weightages are strictly grounded in reviewed university papers.
             </div>
           </div>
         )}
@@ -598,7 +558,7 @@ export default function StudentPortalPage() {
                     Ready to search previous examination papers
                   </h3>
                   <p className="text-xs text-slate-500 max-w-md mx-auto">
-                    Type an exam topic above or click a suggested chip to retrieve historical questions with repeat frequency badges, step-by-step AI solutions, and exact page provenance.
+                    Search by topic or past question number above. You can also explore lecture presentation slides by university professors in the &ldquo;Professor Slides&rdquo; tab.
                   </p>
                 </div>
               )}
@@ -789,7 +749,262 @@ export default function StudentPortalPage() {
           </>
         )}
 
-        {/* ==================== TAB 2: AI PYQ CHAT ASSISTANT ==================== */}
+        {/* ==================== TAB 2: PROFESSOR LECTURE SLIDES (NEW) ==================== */}
+        {activeTab === "slides" && (
+          <div className="space-y-4">
+            {/* Top Control Bar - Space-Efficient Subject Selector & Search */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                {/* Subject Dropdown & Quick Badges */}
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500 whitespace-nowrap">
+                      Select Subject:
+                    </span>
+                    <select
+                      value={selectedSubjectId}
+                      onChange={(e) => {
+                        setSelectedSubjectId(e.target.value);
+                        setSelectedProfessorName("");
+                      }}
+                      className="h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 min-w-[220px]"
+                    >
+                      <option value="">All Subjects (Curriculum-wide)</option>
+                      {subjects.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.code ? `[${s.code}] ` : ""}
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Quick Subject Chips */}
+                  <div className="hidden sm:flex items-center gap-1.5 flex-wrap">
+                    {subjects.slice(0, 4).map((s) => (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => {
+                          setSelectedSubjectId(s.id === selectedSubjectId ? "" : s.id);
+                          setSelectedProfessorName("");
+                        }}
+                        className={`text-xs px-2.5 py-1 rounded-full font-medium transition ${
+                          selectedSubjectId === s.id
+                            ? "bg-indigo-600 text-white shadow-xs"
+                            : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                        }`}
+                      >
+                        {s.code || s.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Filter input */}
+                <div className="relative min-w-[220px] md:w-72">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+                  <input
+                    type="text"
+                    placeholder="Filter professor, topic, slides..."
+                    value={slidesSearch}
+                    onChange={(e) => setSlidesSearch(e.target.value)}
+                    className="w-full h-10 pl-9 pr-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Content: Split Layout (Professors on Left, Topic Slides on Right) */}
+            {loadingSlides ? (
+              <div className="p-12 text-center text-xs text-slate-500 flex flex-col items-center justify-center gap-2 bg-white rounded-2xl border border-slate-200">
+                <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+                <span>Loading university professor lecture slides...</span>
+              </div>
+            ) : professorsList.length === 0 ? (
+              <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+                <Presentation className="w-12 h-12 text-slate-300 mx-auto" />
+                <h4 className="font-bold text-slate-800">No slides found for this subject</h4>
+                <p className="text-xs text-slate-500 max-w-md mx-auto">
+                  No slides match the selected subject or search query. Choose another subject or upload slides via the Admin Portal.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+                {/* Left: Alphabetical Professor List (Column 4 of 12) */}
+                <div className="lg:col-span-4 bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                      University Professors ({professorsList.length})
+                    </span>
+                    <span className="text-[11px] text-indigo-600 font-semibold">
+                      Alphabetical Order (A &rarr; Z)
+                    </span>
+                  </div>
+
+                  <div className="space-y-2 max-h-[620px] overflow-y-auto pr-1">
+                    {professorsList.map((prof) => {
+                      const isSelected = effectiveSelectedProfessor === prof.professor_name;
+                      return (
+                        <button
+                          key={prof.professor_name}
+                          type="button"
+                          onClick={() => setSelectedProfessorName(prof.professor_name)}
+                          className={`w-full text-left p-3 rounded-xl border transition flex items-center justify-between gap-2.5 ${
+                            isSelected
+                              ? "bg-indigo-50/80 border-indigo-300 ring-1 ring-indigo-400/40 text-slate-900"
+                              : "bg-slate-50/60 hover:bg-slate-100/80 border-slate-200 text-slate-700"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
+                                isSelected
+                                  ? "bg-indigo-600 text-white"
+                                  : "bg-slate-200 text-slate-700"
+                              }`}
+                            >
+                              {prof.professor_name
+                                .replace(/^(Dr\.|Prof\.|Mr\.|Ms\.)\s*/i, "")
+                                .slice(0, 2)
+                                .toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="font-semibold text-xs sm:text-sm truncate leading-tight">
+                                {prof.professor_name}
+                              </div>
+                              <div className="text-[11px] text-slate-500 truncate mt-0.5">
+                                {prof.professor_title || "University Faculty"}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <span className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full bg-white border border-slate-200 text-slate-600 shadow-2xs">
+                              {prof.total_slides} slides
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Right: Selected Professor's Topic-wise Slides (Column 8 of 12) */}
+                <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-5">
+                  {activeProfessorData ? (
+                    <>
+                      {/* Professor Profile Header */}
+                      <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-100">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+                            <GraduationCap className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h3 className="text-base font-bold text-slate-900 leading-tight">
+                              {activeProfessorData.professor_name}
+                            </h3>
+                            <p className="text-xs text-slate-500">
+                              {activeProfessorData.professor_title || "University Faculty"} &bull;{" "}
+                              <span className="font-medium text-indigo-600">
+                                {activeProfessorData.total_slides} Lecture Presentation(s)
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-xs text-slate-400 font-medium">
+                          Topic-wise Slides Directory
+                        </div>
+                      </div>
+
+                      {/* Topic Groups */}
+                      <div className="space-y-6">
+                        {activeProfessorData.topics.map((group) => (
+                          <div key={group.topic_name} className="space-y-3">
+                            <div className="flex items-center gap-2">
+                              <div className="w-2.5 h-2.5 rounded-full bg-indigo-600" />
+                              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                                {group.topic_name}
+                              </h4>
+                              <span className="text-[11px] px-2 py-0.2 rounded-full bg-slate-100 text-slate-500 font-medium">
+                                {group.slides.length} {group.slides.length === 1 ? "deck" : "decks"}
+                              </span>
+                            </div>
+
+                            {/* Slides Grid - Space-efficient cards */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                              {group.slides.map((slide) => (
+                                <div
+                                  key={slide.id}
+                                  className="p-3.5 rounded-xl border border-slate-200 hover:border-indigo-300 hover:shadow-xs transition bg-slate-50/50 flex flex-col justify-between gap-3"
+                                >
+                                  <div className="space-y-1.5">
+                                    <div className="flex items-start justify-between gap-2">
+                                      <span className="uppercase font-mono font-bold text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 border border-indigo-200">
+                                        {slide.file_type}
+                                      </span>
+                                      {slide.academic_year && (
+                                        <span className="text-[10px] font-medium text-slate-400">
+                                          {slide.semester ? `${slide.semester} • ` : ""}{slide.academic_year}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <h5 className="font-semibold text-xs sm:text-sm text-slate-900 line-clamp-2 leading-snug">
+                                      {slide.title}
+                                    </h5>
+                                    {slide.description && (
+                                      <p className="text-[11px] text-slate-500 line-clamp-2">
+                                        {slide.description}
+                                      </p>
+                                    )}
+                                  </div>
+
+                                  <div className="pt-2 border-t border-slate-200/80 flex items-center justify-between gap-2">
+                                    <span className="text-[11px] text-slate-400">
+                                      {slide.download_count} downloads
+                                    </span>
+
+                                    <div className="flex items-center gap-1.5">
+                                      {/* View button - Opens in browser PDF viewer with download button */}
+                                      <button
+                                        type="button"
+                                        onClick={() => setInspectSlide(slide)}
+                                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition"
+                                      >
+                                        <Eye className="w-3.5 h-3.5" />
+                                        <span>View</span>
+                                      </button>
+
+                                      {/* Download button */}
+                                      <a
+                                        href={getSlideDownloadUrl(slide.id)}
+                                        download
+                                        className="p-1.5 rounded-lg text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 transition"
+                                        title="Download Slide"
+                                      >
+                                        <Download className="w-3.5 h-3.5" />
+                                      </a>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="py-12 text-center text-xs text-slate-500">
+                      Select a professor from the list to view topic slides.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ==================== TAB 3: AI PYQ CHAT ASSISTANT ==================== */}
         {activeTab === "chat" && (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[540px]">
             <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
@@ -892,7 +1107,7 @@ export default function StudentPortalPage() {
           </div>
         )}
 
-        {/* ==================== TAB 3: TOPIC WEIGHTAGE & SCORE PREDICTOR ==================== */}
+        {/* ==================== TAB 4: TOPIC WEIGHTAGE & SCORE PREDICTOR ==================== */}
         {activeTab === "analytics" && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Left Column: Topic Weightage Bars */}
@@ -1059,363 +1274,6 @@ export default function StudentPortalPage() {
             </div>
           </div>
         )}
-
-        {/* ==================== TAB 4: INTERACTIVE AI QUIZ ==================== */}
-        {activeTab === "quiz" && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  AI Topic Mastery Quiz (Grounded in PYQ Concepts)
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Test your exam readiness with multiple-choice questions and instant conceptual explanations.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  value={quizTopic}
-                  onChange={(e) => setQuizTopic(e.target.value)}
-                  className="h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800"
-                >
-                  <option value="">All Syllabus Topics</option>
-                  {analyticsData?.topics.map((t) => (
-                    <option key={t.topic_name} value={t.topic_name}>
-                      {t.topic_name} ({t.weightage_percent}%)
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={handleStartQuiz}
-                  disabled={quizLoading}
-                  className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs"
-                >
-                  {quizLoading ? "Generating Quiz..." : quizData ? "Regenerate Quiz" : "Start 5-Question Quiz"}
-                </button>
-              </div>
-            </div>
-
-            {!quizData && !quizLoading && (
-              <div className="text-center py-12 space-y-3">
-                <BrainCircuit className="w-10 h-10 text-blue-600 mx-auto" />
-                <p className="text-sm font-bold text-slate-800">
-                  Select a topic above and click &quot;Start 5-Question Quiz&quot;
-                </p>
-              </div>
-            )}
-
-            {quizData && (
-              <div className="space-y-5">
-                {quizSubmitted && (
-                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
-                    <div className="flex items-center space-x-2 text-emerald-900 font-bold text-sm">
-                      <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                      <span>
-                        You scored {quizCorrectCount} out of {quizData.questions.length} ({Math.round((quizCorrectCount / quizData.questions.length) * 100)}%)
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setQuizAnswers({});
-                        setQuizSubmitted(false);
-                      }}
-                      className="inline-flex items-center space-x-1 text-xs font-semibold text-emerald-800 hover:underline"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Retry Quiz</span>
-                    </button>
-                  </div>
-                )}
-
-                {quizData.questions.map((q) => {
-                  const chosen = quizAnswers[q.id];
-                  return (
-                    <div
-                      key={q.id}
-                      className="p-5 rounded-xl border border-slate-200 bg-slate-50/50 space-y-3"
-                    >
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-bold text-blue-700">
-                          Question {q.id} &bull; {q.topic} ({q.difficulty})
-                        </span>
-                        <span className="text-slate-500 font-medium">{q.source_pyq_ref}</span>
-                      </div>
-                      <p className="text-sm font-semibold text-slate-900">{q.question}</p>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                        {q.options.map((opt, oIdx) => {
-                          const isSelected = chosen === oIdx;
-                          const isCorrect = q.correct_index === oIdx;
-                          let btnStyle = "bg-white border-slate-200 text-slate-800 hover:border-blue-300";
-                          if (quizSubmitted) {
-                            if (isCorrect) {
-                              btnStyle = "bg-emerald-50 border-emerald-400 text-emerald-900 font-bold";
-                            } else if (isSelected && !isCorrect) {
-                              btnStyle = "bg-rose-50 border-rose-300 text-rose-800";
-                            }
-                          } else if (isSelected) {
-                            btnStyle = "bg-blue-50 border-blue-500 text-blue-900 font-semibold";
-                          }
-                          return (
-                            <button
-                              key={oIdx}
-                              type="button"
-                              disabled={quizSubmitted}
-                              onClick={() =>
-                                setQuizAnswers((prev) => ({ ...prev, [q.id]: oIdx }))
-                              }
-                              className={`p-3 rounded-xl border text-left text-xs transition flex items-start space-x-2 ${btnStyle}`}
-                            >
-                              <span className="font-bold">
-                                {String.fromCharCode(65 + oIdx)}.
-                              </span>
-                              <span>{opt}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {quizSubmitted && (
-                        <div className="p-3 rounded-lg bg-white border border-slate-200 text-xs text-slate-700">
-                          <strong className="text-slate-900">Explanation: </strong>
-                          {q.explanation}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {!quizSubmitted && (
-                  <button
-                    type="button"
-                    onClick={() => setQuizSubmitted(true)}
-                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shadow-sm transition"
-                  >
-                    Submit Quiz & View Explanations
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ==================== TAB 5: MOCK EXAM PAPER GENERATOR ==================== */}
-        {activeTab === "mock" && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  KIIT Pattern Mock Exam Paper Generator (20M Midsem / 50M Endsem)
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Generates a complete model examination paper strictly grounded in high-frequency syllabus topics and published PYQs.
-                </p>
-              </div>
-
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  value={mockExamType}
-                  onChange={(e) => setMockExamType(e.target.value)}
-                  className="h-10 px-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800"
-                >
-                  <option value="MIDSEM">Mid-Semester Pattern (20 Marks, 1.5 Hrs)</option>
-                  <option value="ENDSEM">End-Semester Pattern (50 Marks, 3.0 Hrs)</option>
-                </select>
-                <button
-                  type="button"
-                  onClick={handleGenerateMock}
-                  disabled={mockLoading}
-                  className="h-10 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs"
-                >
-                  {mockLoading ? "Assembling Paper..." : "Generate Mock Paper"}
-                </button>
-              </div>
-            </div>
-
-            {!mockPaper && !mockLoading && (
-              <div className="text-center py-12 space-y-3">
-                <FileText className="w-10 h-10 text-blue-600 mx-auto" />
-                <p className="text-sm font-bold text-slate-800">
-                  Click &quot;Generate Mock Paper&quot; to build a printable Midsem or Endsem model paper with solution key.
-                </p>
-              </div>
-            )}
-
-            {mockPaper && (
-              <div className="space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                  <div className="flex items-center space-x-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowMockSolutions(!showMockSolutions)}
-                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-bold transition"
-                    >
-                      {showMockSolutions ? "Hide Solution Rubric" : "Show Solution Key & Rubric"}
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => window.print()}
-                    className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 rounded-lg text-xs font-semibold transition"
-                  >
-                    <Printer className="w-3.5 h-3.5" />
-                    <span>Print / Save as PDF</span>
-                  </button>
-                </div>
-
-                {/* Printable University Exam Header */}
-                <div className="border-2 border-slate-800 rounded-xl p-6 space-y-4 bg-white">
-                  <div className="text-center border-b-2 border-slate-800 pb-4 space-y-1">
-                    {mockPaper.instructions.map((line, i) => (
-                      <p
-                        key={i}
-                        className={
-                          i === 0
-                            ? "text-sm sm:text-base font-extrabold text-slate-900 uppercase"
-                            : i === 1
-                            ? "text-xs sm:text-sm font-bold text-slate-800"
-                            : "text-xs text-slate-600"
-                        }
-                      >
-                        {line}
-                      </p>
-                    ))}
-                  </div>
-
-                  <div className="space-y-4">
-                    {mockPaper.questions.map((mq, idx) => {
-                      const prevSection = idx > 0 ? mockPaper.questions[idx - 1].section : null;
-                      const showSectionBanner = mq.section !== prevSection;
-                      return (
-                        <React.Fragment key={mq.q_no}>
-                          {showSectionBanner && (
-                            <div className="bg-slate-100 px-3 py-2 rounded-lg font-extrabold text-xs text-slate-900 uppercase tracking-wider">
-                              {mq.section}
-                            </div>
-                          )}
-                          <div className="p-3.5 rounded-lg border border-slate-200 space-y-2">
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-start space-x-2.5 text-xs sm:text-sm">
-                                <span className="font-extrabold text-slate-900">
-                                  {mq.q_no}.
-                                </span>
-                                <span className="text-slate-800 font-medium">
-                                  {mq.question_text}
-                                </span>
-                              </div>
-                              <span className="text-xs font-bold text-slate-700 whitespace-nowrap">
-                                [{mq.marks} Marks]
-                              </span>
-                            </div>
-
-                            <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-500 pt-1">
-                              <span>
-                                Syllabus Unit: <strong className="text-slate-700">{mq.topic}</strong> &bull; Source: {mq.source_ref}
-                              </span>
-                              {mq.question_id && (
-                                <button
-                                  type="button"
-                                  onClick={() => setInspectQuestionId(mq.question_id!)}
-                                  className="text-blue-600 hover:underline font-semibold"
-                                >
-                                  Inspect Original Paper Page
-                                </button>
-                              )}
-                            </div>
-
-                            {showMockSolutions && (
-                              <div className="p-2.5 rounded bg-emerald-50 border border-emerald-200 text-xs text-emerald-900">
-                                <strong>Answer Key & Marking Rubric: </strong>
-                                {mq.solution_hint}
-                              </div>
-                            )}
-                          </div>
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ==================== TAB 6: BROWSE ARCHIVE ==================== */}
-        {activeTab === "archive" && (
-          <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
-              <div>
-                <h3 className="text-base font-bold text-slate-900">
-                  Verified Past Paper & Question Archive
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Browse all administrator-approved and published university exam questions with direct PDF download.
-                </p>
-              </div>
-            </div>
-
-            {loadingArchive && (
-              <div className="py-12 text-center text-xs text-slate-500">
-                Loading published archive...
-              </div>
-            )}
-
-            {!loadingArchive && archiveQuestions.length === 0 && (
-              <div className="py-12 text-center text-xs text-slate-500">
-                No published questions found for the selected filter.
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {archiveQuestions.map((q) => (
-                <div
-                  key={q.id}
-                  className="p-4 rounded-xl border border-slate-200 hover:border-blue-300 transition space-y-2.5 flex flex-col justify-between"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="px-2.5 py-0.5 bg-blue-600 text-white font-bold rounded">
-                        {q.question_number}
-                      </span>
-                      <span className="font-bold text-slate-700">
-                        {q.subject_code} &bull; {q.exam_year} {q.exam_type} ({q.marks ?? 5}M)
-                      </span>
-                    </div>
-                    <p className="text-xs sm:text-sm text-slate-800 line-clamp-3">
-                      {q.question_text}
-                    </p>
-                  </div>
-
-                  <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                    <span className="text-slate-500 truncate max-w-[200px]">
-                      {q.source_filename} (p. {q.page_number})
-                    </span>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => setInspectQuestionId(q.id)}
-                        className="text-blue-600 hover:underline font-semibold"
-                      >
-                        Preview Page
-                      </button>
-                      <a
-                        href={`${API_BASE}/api/v1/documents/${q.document_id}/file`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-slate-700 hover:text-blue-600 font-semibold"
-                      >
-                        PDF &rarr;
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </main>
 
       {/* Source Viewer Modal */}
@@ -1424,10 +1282,16 @@ export default function StudentPortalPage() {
         onClose={() => setInspectQuestionId(null)}
       />
 
+      {/* Slide Viewer Modal */}
+      <SlideViewerModal
+        slide={inspectSlide}
+        onClose={() => setInspectSlide(null)}
+      />
+
       {/* Footer */}
       <footer className="mt-auto border-t border-slate-200 bg-white py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-400">
-          QueryQP &bull; Previous Year Question Recommender, AI Solver & Exam-Prep Management System &bull; School of Computer Engineering, KIIT University.
+          QueryQP &bull; Previous Year Question Recommender, Lecture Slides &amp; AI Exam-Prep Suite &bull; School of Computer Engineering, KIIT University.
         </div>
       </footer>
     </div>

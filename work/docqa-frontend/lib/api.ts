@@ -833,3 +833,136 @@ export async function fetchPublicQuestions(filters?: {
   const res = await fetch(`${API_V1}/questions?${params.toString()}`);
   return handleResponse<Question[]>(res);
 }
+
+
+// ----------------- Slides Models & Endpoints -----------------
+
+export interface SlideItem {
+  id: string;
+  subject_id?: string | null;
+  subject_name?: string | null;
+  professor_name: string;
+  professor_title?: string | null;
+  topic_name: string;
+  title: string;
+  description?: string | null;
+  storage_key?: string | null;
+  file_type: string;
+  file_size_bytes?: number | null;
+  semester?: string | null;
+  academic_year?: number | null;
+  download_count: number;
+  created_at?: string | null;
+  updated_at?: string | null;
+}
+
+export interface TopicSlidesGroup {
+  topic_name: string;
+  slides: SlideItem[];
+}
+
+export interface ProfessorSlidesItem {
+  professor_name: string;
+  professor_title?: string | null;
+  total_slides: number;
+  topics: TopicSlidesGroup[];
+}
+
+export interface ProfessorsBySubjectResponse {
+  subject_id?: string | null;
+  professors: ProfessorSlidesItem[];
+}
+
+export async function fetchProfessorSlides(
+  subjectId?: string,
+  search?: string
+): Promise<ProfessorsBySubjectResponse> {
+  const params = new URLSearchParams();
+  if (subjectId) params.append("subject_id", subjectId);
+  if (search) params.append("search", search);
+  const res = await fetch(`${API_V1}/slides/professors?${params.toString()}`);
+  return handleResponse<ProfessorsBySubjectResponse>(res);
+}
+
+export async function fetchPublicSlides(filters?: {
+  subject_id?: string;
+  professor_name?: string;
+  topic_name?: string;
+  search?: string;
+}): Promise<SlideItem[]> {
+  const params = new URLSearchParams();
+  if (filters?.subject_id) params.append("subject_id", filters.subject_id);
+  if (filters?.professor_name) params.append("professor_name", filters.professor_name);
+  if (filters?.topic_name) params.append("topic_name", filters.topic_name);
+  if (filters?.search) params.append("search", filters.search);
+  const res = await fetch(`${API_V1}/slides?${params.toString()}`);
+  return handleResponse<SlideItem[]>(res);
+}
+
+export function getSlideFileUrl(slideId: string): string {
+  return `${API_V1}/slides/${encodeURIComponent(slideId)}/file`;
+}
+
+export function getSlideDownloadUrl(slideId: string): string {
+  return `${API_V1}/slides/${encodeURIComponent(slideId)}/download`;
+}
+
+export async function fetchAdminSlides(filters?: {
+  subject_id?: string;
+  professor_name?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}): Promise<{ items: SlideItem[]; total: number; page: number; pages: number }> {
+  const params = new URLSearchParams();
+  if (filters?.subject_id) params.append("subject_id", filters.subject_id);
+  if (filters?.professor_name) params.append("professor_name", filters.professor_name);
+  if (filters?.search) params.append("search", filters.search);
+  if (filters?.page) params.append("page", filters.page.toString());
+  if (filters?.limit) params.append("limit", filters.limit.toString());
+  const res = await fetch(`${API_V1}/admin/slides?${params.toString()}`, {
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<{ items: SlideItem[]; total: number; page: number; pages: number }>(res);
+}
+
+export async function uploadSlideAdmin(formData: FormData): Promise<SlideItem> {
+  const token = getAdminToken();
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  const res = await fetch(`${API_V1}/admin/slides`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+  return handleResponse<SlideItem>(res);
+}
+
+export async function updateSlideAdmin(
+  slideId: string,
+  payload: Partial<SlideItem>
+): Promise<SlideItem> {
+  const res = await fetch(`${API_V1}/admin/slides/${encodeURIComponent(slideId)}`, {
+    method: "PUT",
+    headers: {
+      ...getAuthHeaders(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<SlideItem>(res);
+}
+
+export async function deleteSlideAdmin(
+  slideId: string
+): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_V1}/admin/slides/${encodeURIComponent(slideId)}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<{ success: boolean; message: string }>(res);
+}

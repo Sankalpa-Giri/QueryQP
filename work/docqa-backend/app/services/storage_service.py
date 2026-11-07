@@ -25,6 +25,7 @@ class StorageService:
         self.docs_dir = base_dir / "documents"
         self.md_dir = base_dir / "markdown"
         self.assets_dir = base_dir / "assets"
+        self.slides_dir = base_dir / "slides"
         self.ensure_dirs()
         self._s3_client = None
 
@@ -32,6 +33,7 @@ class StorageService:
         self.docs_dir.mkdir(parents=True, exist_ok=True)
         self.md_dir.mkdir(parents=True, exist_ok=True)
         self.assets_dir.mkdir(parents=True, exist_ok=True)
+        self.slides_dir.mkdir(parents=True, exist_ok=True)
 
     @property
     def s3_client(self):
@@ -175,6 +177,53 @@ class StorageService:
             return ""
         with open(target_path, "r", encoding="utf-8") as f:
             return f.read()
+
+    def save_slide_file(self, slide_id: str, file_obj: Any, extension: str, content_type: str = "application/pdf") -> str:
+        """Store uploaded lecture slides (PDF, PPT, PPTX)."""
+        clean_ext = extension.lstrip(".").lower()
+        target_path = self.slides_dir / f"{slide_id}.{clean_ext}"
+        with open(target_path, "wb") as buffer:
+            shutil.copyfileobj(file_obj, buffer)
+
+        storage_key = str(target_path.relative_to(self.base_dir).as_posix())
+        if self.s3_client and settings.AWS_S3_BUCKET:
+            try:
+                self.s3_client.upload_file(
+                    str(target_path),
+                    settings.AWS_S3_BUCKET,
+                    storage_key,
+                    ExtraArgs={"ContentType": content_type},
+                )
+            except Exception as e:
+                logger.warning("Failed to upload slide to S3: %s", e)
+
+        return storage_key
+
+    def get_slide_path(self, storage_key: str) -> Path:
+        """Resolve path to stored slide file."""
+        target_path = self.base_dir / storage_key
+        if not target_path.is_file() and self.s3_client and settings.AWS_S3_BUCKET:
+            try:
+                target_path.parent.mkdir(parents=True, exist_ok=True)
+                self.s3_client.download_file(settings.AWS_S3_BUCKET, storage_key, str(target_path))
+            except Exception:
+                pass
+        return target_path
+
+    def delete_slide_file(self, storage_key: str) -> bool:
+        """Delete slide file from local disk and S3."""
+        target_path = self.base_dir / storage_key
+        if target_path.is_file():
+            try:
+                target_path.unlink()
+            except Exception:
+                pass
+        if self.s3_client and settings.AWS_S3_BUCKET:
+            try:
+                self.s3_client.delete_object(Bucket=settings.AWS_S3_BUCKET, Key=storage_key)
+            except Exception:
+                pass
+        return True
 
 
 storage_service = StorageService()

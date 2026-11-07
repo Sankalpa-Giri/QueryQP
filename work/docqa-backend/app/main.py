@@ -11,6 +11,7 @@ from app.api.v1 import api_v1_router
 from app.core.config import settings
 from app.db.session import Base, SessionLocal, engine, upgrade_schema
 from app.services.auth_service import init_default_admin
+from app.services.slide_service import init_default_slides
 from app.services.subject_service import init_default_subjects
 
 
@@ -22,11 +23,12 @@ async def lifespan(app: FastAPI):
     upgrade_schema(engine)
     # Ensure directories exist
     settings.setup_directories()
-    # Bootstrap default admin & curriculum subjects
+    # Bootstrap default admin, curriculum subjects & lecture slides
     db = SessionLocal()
     try:
         init_default_admin(db)
         init_default_subjects(db)
+        init_default_slides(db)
     finally:
         db.close()
     yield
@@ -49,7 +51,8 @@ app.add_middleware(
 )
 
 # API v1 endpoints
-app.include_router(api_v1_router)
+api_v1_router_instance = api_v1_router
+app.include_router(api_v1_router_instance)
 
 # Legacy / Prototype endpoints preserved
 app.include_router(documents_router)

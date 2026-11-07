@@ -15,6 +15,7 @@ import {
 import {
   LayoutDashboard,
   UploadCloud,
+  Presentation,
   Layers,
   ClipboardCheck,
   HelpCircle,
@@ -34,6 +35,7 @@ import {
 const NAV_ITEMS = [
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { name: "Upload Paper", href: "/admin/upload", icon: UploadCloud },
+  { name: "Slides Manager", href: "/admin/slides", icon: Presentation },
   { name: "Batch Monitor", href: "/admin/batches", icon: Layers },
   { name: "Staging Area", href: "/admin/staging", icon: ClipboardCheck },
   { name: "Question Bank", href: "/admin/questions", icon: HelpCircle },

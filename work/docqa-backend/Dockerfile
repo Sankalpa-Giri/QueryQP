@@ -2,10 +2,12 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install system dependencies for PyMuPDF and curl
+# Install system dependencies for PyMuPDF, OCR and curl
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libmupdf-dev \
+    tesseract-ocr \
+    tesseract-ocr-eng \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
@@ -15,7 +17,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Ensure storage directories exist
-RUN mkdir -p data/storage/documents data/storage/markdown data/storage/assets data/storage/exports
+RUN mkdir -p data/storage/documents data/storage/markdown data/storage/assets data/storage/slides data/storage/exports
 
 EXPOSE 8000
 
