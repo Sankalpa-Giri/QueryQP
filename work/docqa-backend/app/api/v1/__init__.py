@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.v1.ai_prep import router as ai_prep_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.batches import router as batches_router
 from app.api.v1.dashboard import router as dashboard_router
@@ -24,4 +25,4 @@ api_v1_router.include_router(documents_public_router)
 api_v1_router.include_router(questions_admin_router)
 api_v1_router.include_router(questions_public_router)
 api_v1_router.include_router(search_router)
-
+api_v1_router.include_router(ai_prep_router)

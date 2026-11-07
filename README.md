@@ -1,3 +1,15 @@
+# QueryQP Intelligence — AI Exam-Prep, PYQ Search & Question Bank System
+
+**Author / Lead Developer:** Mohit Biswal  
+**Institution:** School of Computer Engineering, KIIT Deemed to be University  
+
+### Key Features Implemented
+- **6-Tab Student AI Portal:** Hybrid PYQ Search, Conversational AI Assistant, Topic Weightage & Score Predictor, Interactive Topic Quiz, KIIT-Pattern Mock Exam Generator (20M Midsem / 50M Endsem), and Question Archive.
+- **Hybrid Retrieval Engine:** Okapi BM25 Lexical Search + BAAI/bge-small-en-v1.5 Semantic Embeddings fused via Reciprocal Rank Fusion (RRF).
+- **AI Step-by-Step Solver & Repeat Detector:** Instant marking-scheme solutions and multi-year repeat frequency badges.
+- **Human-in-the-Loop Admin Portal:** Bulk PDF ingestion (PyMuPDF & LlamaParse OCR), staging review, question splitting, and visual bounding-box page provenance.
+
+---
 # Previous Year Question (PYQ) Recommender & Management System
 
 A full-stack Previous Year Question (PYQ) Recommender System engineered for college students and academic administrators.
@@ -128,3 +140,4 @@ npm run build
 ## License
 
 MIT License. Designed for academic exam preparation and question retrieval.
+

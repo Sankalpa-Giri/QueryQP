@@ -111,6 +111,9 @@ def execute_student_search(payload: SearchRequest, db: Session = Depends(get_db)
             resp.source_filename = item.source_filename
             resp.review_status = q.review_status.value
             resp.publication_status = q.publication_status.value
+            resp.repeat_count = item.repeat_count
+            resp.appearances = item.appearances
+            resp.relevance_score = item.score
             results.append(resp)
 
     # 5. Build informative user feedback message

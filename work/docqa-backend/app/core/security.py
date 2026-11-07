@@ -5,8 +5,11 @@ import bcrypt
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.db.session import get_db
+from app.models.user import AdminUser
 
 security_scheme = HTTPBearer(auto_error=False)
 
@@ -55,8 +58,9 @@ def decode_access_token(token: str) -> dict[str, Any] | None:
 
 def get_current_admin_user(
     auth: HTTPAuthorizationCredentials | None = Depends(security_scheme),
+    db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    """Dependency verifying admin bearer token. Returns user payload or raises 401."""
+    """Dependency verifying admin bearer token and active DB account status."""
     if not auth or not auth.credentials:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -72,10 +76,29 @@ def get_current_admin_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    sub = str(payload["sub"])
+    username = payload.get("username", sub)
+
+    db_user = (
+        db.query(AdminUser)
+        .filter((AdminUser.id == sub) | (AdminUser.username == username))
+        .first()
+    )
+    if db_user is not None and not db_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Administrator account has been deactivated.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     return {
-        "id": payload["sub"],
-        "username": payload.get("username", payload["sub"]),
-        "role": payload.get("role", "admin"),
-        "full_name": payload.get("full_name"),
-        "must_change_password": payload.get("must_change_password", False),
+        "id": db_user.id if db_user else sub,
+        "username": db_user.username if db_user else username,
+        "role": db_user.role if db_user else payload.get("role", "admin"),
+        "full_name": db_user.full_name if db_user else payload.get("full_name"),
+        "must_change_password": (
+            db_user.must_change_password
+            if db_user is not None
+            else payload.get("must_change_password", False)
+        ),
     }

@@ -36,6 +36,8 @@ fastapi_app.dependency_overrides[get_db] = override_get_db
 def setup_test_db():
     Base.metadata.create_all(bind=test_engine)
     db = TestingSessionLocal()
+    from app.services.subject_service import init_default_subjects
+    init_default_subjects(db)
     admin = AdminUser(
         username="admin",
         hashed_password=get_password_hash("admin123"),

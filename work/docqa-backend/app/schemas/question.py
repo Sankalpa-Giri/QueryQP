@@ -24,6 +24,9 @@ class QuestionResponse(BaseModel):
     bbox: list[float] | None = None
     review_status: str
     publication_status: str
+    repeat_count: int = 1
+    appearances: list[str] = Field(default_factory=list)
+    relevance_score: float | None = None
     created_at: datetime
     updated_at: datetime
 

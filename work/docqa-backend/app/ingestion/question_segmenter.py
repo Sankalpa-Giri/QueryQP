@@ -421,17 +421,33 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
     return split_inline_subquestions(questions)
 
 
+PAGE_MARKER_REGEX = re.compile(r"<!--\s*Page\s+(\d+)\s*-->", re.IGNORECASE)
+
+
 def _segment_from_markdown(markdown: str) -> list[ExtractedQuestion]:
-    """Fallback segmenter splitting clean markdown lines by question numbering."""
+    """Fallback segmenter splitting clean markdown lines by question numbering while preserving page provenance."""
     questions: list[ExtractedQuestion] = []
     blocks = [b.strip() for b in markdown.split("\n\n") if b.strip()]
     cur_num = "Q1"
     cur_text: list[str] = []
-    idx = 1
+    current_page = 1
+    q_start_page = 1
+    q_end_page = 1
+    default_page_bbox = [50.0, 50.0, 545.0, 792.0]
 
     for block in blocks:
-        if block.startswith("<!-- Page"):
+        if block == "---":
             continue
+        page_match = PAGE_MARKER_REGEX.search(block)
+        if page_match:
+            try:
+                current_page = int(page_match.group(1))
+            except ValueError:
+                pass
+            block = PAGE_MARKER_REGEX.sub("", block).strip()
+            if not block:
+                continue
+
         first_line = block.split("\n")[0]
         m = QUESTION_START_REGEX.match(first_line)
         if m:
@@ -442,16 +458,22 @@ def _segment_from_markdown(markdown: str) -> list[ExtractedQuestion]:
                         question_number=cur_num,
                         question_text=t,
                         normalized_text=normalize_query_text(t),
-                        page_number=1,
-                        page_end=1,
+                        page_number=q_start_page,
+                        page_end=q_end_page,
                         marks=extract_marks(t),
+                        bbox=default_page_bbox,
                     )
                 )
                 cur_text = []
-                idx += 1
             cur_num = m.group(0).strip(".:- ")
             if not cur_num.upper().startswith("Q"):
                 cur_num = f"Q{cur_num}"
+            q_start_page = current_page
+            q_end_page = current_page
+        else:
+            if not cur_text:
+                q_start_page = current_page
+            q_end_page = current_page
         cur_text.append(block)
 
     if cur_text:
@@ -461,9 +483,10 @@ def _segment_from_markdown(markdown: str) -> list[ExtractedQuestion]:
                 question_number=cur_num,
                 question_text=t,
                 normalized_text=normalize_query_text(t),
-                page_number=1,
-                page_end=1,
+                page_number=q_start_page,
+                page_end=q_end_page,
                 marks=extract_marks(t),
+                bbox=default_page_bbox,
             )
         )
 

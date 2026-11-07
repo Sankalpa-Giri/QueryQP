@@ -17,6 +17,13 @@ def extract_pdf_pages(path: Path) -> list[dict]:
             page_height = float(page.rect.height)
 
             raw_blocks = page.get_text("blocks")
+            total_chars = sum(len(str(b[4]).strip()) for b in raw_blocks if len(b) > 4)
+            if total_chars < 30:
+                try:
+                    tp = page.get_textpage_ocr(flags=0, language="eng", dpi=300, full=True)
+                    raw_blocks = page.get_text("blocks", textpage=tp)
+                except Exception:
+                    pass
             # Sort blocks into human visual reading order (top-to-bottom, left-to-right)
             # Grouping y0 by 6pt avoids jitter on adjacent columns or slight misalignments
             sorted_blocks = sorted(raw_blocks, key=lambda b: (round(b[1] / 6) * 6, b[0]))

@@ -20,7 +20,6 @@ export const API_BASE = (function () {
   }
   return "";
 })();
-
 export const API_V1 = `${API_BASE}/api/v1`;
 
 // Token & User storage keys
@@ -153,6 +152,9 @@ export interface Question {
   bbox?: number[] | null;
   review_status: "PENDING" | "APPROVED" | "FLAGGED";
   publication_status: "DRAFT" | "PUBLISHED" | "UNPUBLISHED";
+  repeat_count?: number;
+  appearances?: string[];
+  relevance_score?: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -653,3 +655,181 @@ export async function triggerBatchProcess(batchId: string): Promise<any> {
   return handleResponse(res);
 }
 
+
+
+// ----------------- AI Exam-Prep & Analytics API -----------------
+
+export interface SolveQuestionResponse {
+  question_id: string;
+  question_number: string;
+  question_text: string;
+  subject_name: string;
+  subject_code: string;
+  exam_year: number;
+  exam_type: string;
+  marks: number;
+  topics: string[];
+  repeat_count: number;
+  appearances: string[];
+  solution_steps: string[];
+  key_concepts: string[];
+  marking_scheme: string[];
+  full_explanation: string;
+  model_used: string;
+}
+
+export interface PYQChatCitation {
+  question_id: string;
+  document_id: string;
+  question_number: string;
+  subject_code: string;
+  exam_year: number;
+  exam_type: string;
+  page_number: number;
+  marks?: number | null;
+  snippet: string;
+}
+
+export interface PYQChatResponse {
+  answer: string;
+  citations: PYQChatCitation[];
+  repeat_summary: string;
+  suggested_followups: string[];
+}
+
+export interface TopicAnalyticsItem {
+  topic_name: string;
+  question_count: number;
+  total_marks: number;
+  weightage_percent: number;
+  priority_tier: "HIGH YIELD" | "CORE" | "SUPPLEMENTARY" | string;
+  years_asked: number[];
+  sample_questions: {
+    question_id: string;
+    question_number: string;
+    question_text: string;
+    exam_year: number;
+    exam_type: string;
+    marks: number;
+  }[];
+}
+
+export interface SubjectAnalyticsResponse {
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  total_published_questions: number;
+  total_historical_marks: number;
+  distinct_papers_count: number;
+  topics: TopicAnalyticsItem[];
+}
+
+export interface QuizQuestionItem {
+  id: number;
+  topic: string;
+  difficulty: string;
+  question: string;
+  options: string[];
+  correct_index: number;
+  explanation: string;
+  source_pyq_ref: string;
+}
+
+export interface QuizGenerateResponse {
+  subject_name: string;
+  topic_focus: string;
+  questions: QuizQuestionItem[];
+}
+
+export interface MockPaperQuestionItem {
+  q_no: string;
+  section: string;
+  question_text: string;
+  marks: number;
+  topic: string;
+  source_ref: string;
+  solution_hint: string;
+  question_id?: string | null;
+  document_id?: string | null;
+  page_number: number;
+}
+
+export interface MockPaperResponse {
+  subject_id: string;
+  subject_name: string;
+  subject_code: string;
+  exam_type: string;
+  total_marks: number;
+  duration_minutes: number;
+  instructions: string[];
+  sections: { name: string; description: string; marks: number }[];
+  questions: MockPaperQuestionItem[];
+}
+
+export async function solveQuestionAI(questionId: string): Promise<SolveQuestionResponse> {
+  const res = await fetch(`${API_V1}/ai/questions/${encodeURIComponent(questionId)}/solve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  });
+  return handleResponse<SolveQuestionResponse>(res);
+}
+
+export async function chatWithPYQAssistant(payload: {
+  message: string;
+  subject_id?: string;
+  exam_type?: string;
+}): Promise<PYQChatResponse> {
+  const res = await fetch(`${API_V1}/ai/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<PYQChatResponse>(res);
+}
+
+export async function fetchSubjectAnalytics(subjectId: string): Promise<SubjectAnalyticsResponse> {
+  const res = await fetch(`${API_V1}/ai/subjects/${encodeURIComponent(subjectId)}/analytics`, {
+    headers: { Accept: "application/json" },
+  });
+  return handleResponse<SubjectAnalyticsResponse>(res);
+}
+
+export async function generateTopicQuiz(payload: {
+  subject_id?: string;
+  topic_name?: string;
+  num_questions?: number;
+}): Promise<QuizGenerateResponse> {
+  const res = await fetch(`${API_V1}/ai/quiz`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<QuizGenerateResponse>(res);
+}
+
+export async function generateMockPaper(payload: {
+  subject_id: string;
+  exam_type: string;
+}): Promise<MockPaperResponse> {
+  const res = await fetch(`${API_V1}/ai/mock-paper`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  return handleResponse<MockPaperResponse>(res);
+}
+
+export async function fetchPublicQuestions(filters?: {
+  subject_id?: string;
+  exam_year?: number;
+  exam_type?: string;
+  limit?: number;
+}): Promise<Question[]> {
+  const params = new URLSearchParams();
+  if (filters?.subject_id) params.append("subject_id", filters.subject_id);
+  if (filters?.exam_year) params.append("exam_year", filters.exam_year.toString());
+  if (filters?.exam_type) params.append("exam_type", filters.exam_type);
+  if (filters?.limit) params.append("limit", filters.limit.toString());
+  const res = await fetch(`${API_V1}/questions?${params.toString()}`);
+  return handleResponse<Question[]>(res);
+}
