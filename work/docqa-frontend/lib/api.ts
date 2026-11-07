@@ -13,7 +13,7 @@ export const API_BASE = (function () {
     if (envUrl && envUrl.trim() !== "") {
       return envUrl.replace(/\/+$/, "");
     }
-    return "";
+    return isLocalhost ? "http://127.0.0.1:8000" : "";
   }
   if (envUrl && !envUrl.includes("localhost") && !envUrl.includes("127.0.0.1")) {
     return envUrl.replace(/\/+$/, "");
