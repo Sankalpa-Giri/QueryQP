@@ -209,24 +209,24 @@ export default function AdminSlidesPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5">
-            <Presentation className="w-7 h-7 text-indigo-600" />
+          <h1 className="text-2xl font-semibold tracking-tight text-ink flex items-center gap-2.5">
+            <Presentation className="w-7 h-7 text-primary" />
             Professor Lecture Slides Management
           </h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <p className="text-sm text-ink-muted mt-1">
             Upload, categorize by topic, and manage university lecture presentations and study slides.
           </p>
         </div>
         {!isReviewer ? (
           <button
             onClick={handleOpenUpload}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition"
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary hover:bg-primary-hover text-ground text-sm font-semibold rounded-xl transition"
           >
             <Plus className="w-4 h-4" />
             <span>Upload New Slides</span>
           </button>
         ) : (
-          <div className="px-3.5 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-medium">
+          <div className="px-3.5 py-2 rounded-xl bg-raised border border-line-strong text-ink-soft text-xs font-medium">
             Reviewer Mode: View-Only Slides
           </div>
         )}
@@ -234,38 +234,38 @@ export default function AdminSlidesPage() {
 
       {/* Messages */}
       {successMessage && (
-        <div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm">
+        <div className="flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 rounded-xl text-sm">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
             <span>{successMessage}</span>
           </div>
-          <button onClick={() => setSuccessMessage(null)} className="text-emerald-600 hover:text-emerald-800">
+          <button onClick={() => setSuccessMessage(null)} className="text-emerald-400 hover:text-emerald-300">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {errorMessage && (
-        <div className="flex items-center justify-between p-4 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-sm">
+        <div className="flex items-center justify-between p-4 bg-rose-500/10 border border-rose-500/25 text-rose-300 rounded-xl text-sm">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-rose-600 shrink-0" />
+            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
             <span>{errorMessage}</span>
           </div>
-          <button onClick={() => setErrorMessage(null)} className="text-rose-600 hover:text-rose-800">
+          <button onClick={() => setErrorMessage(null)} className="text-rose-400 hover:text-rose-300">
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
       {/* Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-surface p-4 rounded-xl border border-line flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3 flex-1 min-w-[280px]">
           {/* Subject Filter */}
           <div className="w-full sm:w-64">
             <select
               value={selectedSubjectId}
               onChange={(e) => setSelectedSubjectId(e.target.value)}
-              className="w-full h-10 px-3 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full h-10 px-3 bg-ground border border-line rounded-lg text-sm text-ink focus:bg-raised focus:outline-none focus:ring-2 focus:ring-primary"
             >
               <option value="">All Subjects</option>
               {subjects.map((s) => (
@@ -279,39 +279,39 @@ export default function AdminSlidesPage() {
 
           {/* Search Query */}
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3 pointer-events-none" />
+            <Search className="w-4 h-4 text-ink-faint absolute left-3 top-3 pointer-events-none" />
             <input
               type="text"
               placeholder="Search by professor, topic, or slide title..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-10 pl-9 pr-4 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full h-10 pl-9 pr-4 bg-ground border border-line rounded-lg text-sm text-ink placeholder-ink-faint focus:bg-raised focus:outline-none focus:ring-2 focus:ring-primary"
             />
           </div>
         </div>
 
-        <div className="text-xs text-slate-500 font-medium">
-          Total Slides: <strong className="text-slate-900">{slides.length}</strong>
+        <div className="text-xs text-ink-muted font-medium">
+          Total Slides: <strong className="text-ink">{slides.length}</strong>
         </div>
       </div>
 
       {/* Slides Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="bg-surface rounded-xl border border-line overflow-hidden">
         {isLoading ? (
-          <div className="p-12 text-center text-sm text-slate-500 flex flex-col items-center justify-center gap-2">
-            <div className="w-6 h-6 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <div className="p-12 text-center text-sm text-ink-muted flex flex-col items-center justify-center gap-2">
+            <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             <span>Loading lecture slides...</span>
           </div>
         ) : slides.length === 0 ? (
-          <div className="p-12 text-center text-sm text-slate-500 space-y-3">
-            <Presentation className="w-12 h-12 text-slate-300 mx-auto" />
-            <p className="font-semibold text-slate-700">No slides found matching your filters.</p>
-            <p className="text-xs text-slate-400">Click &ldquo;Upload New Slides&rdquo; above to add university lecture slides.</p>
+          <div className="p-12 text-center text-sm text-ink-muted space-y-3">
+            <Presentation className="w-12 h-12 text-ink-dim mx-auto" />
+            <p className="font-semibold text-ink-soft">No slides found matching your filters.</p>
+            <p className="text-xs text-ink-faint">Click &ldquo;Upload New Slides&rdquo; above to add university lecture slides.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-600">
-              <thead className="bg-slate-50 text-xs font-semibold text-slate-700 uppercase tracking-wider border-b border-slate-200">
+            <table className="w-full text-left text-sm text-ink-soft">
+              <thead className="bg-ground text-xs font-semibold text-ink-soft border-b border-line">
                 <tr>
                   <th className="px-4 py-3">Slide Presentation</th>
                   <th className="px-4 py-3">Topic</th>
@@ -322,20 +322,20 @@ export default function AdminSlidesPage() {
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-line-soft">
                 {slides.map((s) => (
-                  <tr key={s.id} className="hover:bg-slate-50/80 transition">
+                  <tr key={s.id} className="hover:bg-raised/80 transition">
                     <td className="px-4 py-3.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="p-2 rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 shrink-0">
+                        <div className="p-2 rounded-lg bg-raised text-ink-soft shrink-0">
                           <Presentation className="w-4 h-4" />
                         </div>
                         <div className="min-w-0 max-w-xs">
-                          <div className="font-semibold text-slate-900 truncate" title={s.title}>
+                          <div className="font-semibold text-ink truncate" title={s.title}>
                             {s.title}
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-0.5">
-                            <span className="uppercase font-mono font-medium text-[10px] px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                          <div className="flex items-center gap-1.5 text-xs text-ink-faint mt-0.5">
+                            <span className="font-mono font-medium text-[10px] px-1.5 py-0.2 rounded bg-raised text-ink-soft border border-line">
                               {s.file_type}
                             </span>
                             <span>{formatFileSize(s.file_size_bytes)}</span>
@@ -344,35 +344,35 @@ export default function AdminSlidesPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3.5">
-                      <span className="inline-block px-2.5 py-1 text-xs font-medium rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 max-w-[180px] truncate">
+                      <span className="inline-block px-2.5 py-1 text-xs font-medium rounded-full bg-raised text-ink-soft border border-line-strong max-w-[180px] truncate">
                         {s.topic_name}
                       </span>
                     </td>
                     <td className="px-4 py-3.5">
-                      <div className="text-slate-900 font-medium">{s.professor_name}</div>
+                      <div className="text-ink font-medium">{s.professor_name}</div>
                       {s.professor_title && (
-                        <div className="text-xs text-slate-400 truncate max-w-[160px]">{s.professor_title}</div>
+                        <div className="text-xs text-ink-faint truncate max-w-[160px]">{s.professor_title}</div>
                       )}
                     </td>
                     <td className="px-4 py-3.5 text-xs">
                       {s.subject_name ? (
-                        <span className="text-slate-800 font-medium">{s.subject_name}</span>
+                        <span className="text-ink font-medium">{s.subject_name}</span>
                       ) : (
-                        <span className="text-slate-400 italic">General</span>
+                        <span className="text-ink-faint italic">General</span>
                       )}
                     </td>
-                    <td className="px-4 py-3.5 text-xs text-slate-600 whitespace-nowrap">
+                    <td className="px-4 py-3.5 text-xs text-ink-soft whitespace-nowrap">
                       {s.semester || "Semester —"}
                       {s.academic_year && ` • ${s.academic_year}`}
                     </td>
-                    <td className="px-4 py-3.5 text-center text-xs font-semibold text-slate-700">
+                    <td className="px-4 py-3.5 text-center text-xs font-semibold text-ink-soft">
                       {s.download_count}
                     </td>
                     <td className="px-4 py-3.5 text-right whitespace-nowrap">
                       <div className="inline-flex items-center gap-1.5">
                         <button
                           onClick={() => setPreviewSlide(s)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition"
+                          className="p-1.5 rounded-lg text-ink-muted hover:text-primary hover:bg-primary/10 transition"
                           title="View PDF / Slides"
                         >
                           <Eye className="w-4 h-4" />
@@ -380,7 +380,7 @@ export default function AdminSlidesPage() {
                         <a
                           href={getSlideDownloadUrl(s.id)}
                           download
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 transition"
+                          className="p-1.5 rounded-lg text-ink-muted hover:text-primary hover:bg-primary/10 transition"
                           title="Download Presentation"
                         >
                           <Download className="w-4 h-4" />
@@ -389,14 +389,14 @@ export default function AdminSlidesPage() {
                           <>
                             <button
                               onClick={() => handleOpenEdit(s)}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition"
+                              className="p-1.5 rounded-lg text-ink-muted hover:text-amber-400 hover:bg-amber-500/10 transition"
                               title="Edit Details"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
                               onClick={() => handleDelete(s)}
-                              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
+                              className="p-1.5 rounded-lg text-ink-muted hover:text-rose-400 hover:bg-rose-500/10 transition"
                               title="Delete Slide"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -416,10 +416,10 @@ export default function AdminSlidesPage() {
       {/* Upload / Edit Modal */}
       {isUploadOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden my-8">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50">
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Presentation className="w-5 h-5 text-indigo-600" />
+          <div className="relative w-full max-w-xl bg-surface rounded-2xl shadow-xl border border-line overflow-hidden my-8">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-line-soft bg-ground">
+              <h2 className="text-lg font-semibold text-ink flex items-center gap-2">
+                <Presentation className="w-5 h-5 text-primary" />
                 <span>{editingSlide ? "Edit Slide Presentation" : "Upload Professor Lecture Slides"}</span>
               </h2>
               <button
@@ -427,7 +427,7 @@ export default function AdminSlidesPage() {
                   setIsUploadOpen(false);
                   resetForm();
                 }}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-lg"
+                className="text-ink-faint hover:text-ink-soft p-1 rounded-lg"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -443,8 +443,8 @@ export default function AdminSlidesPage() {
               {/* File input (required for new uploads) */}
               {!editingSlide && (
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Slide File (PDF, PPTX, PPT) <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-semibold text-ink-soft mb-1.5">
+                    Slide File (PDF, PPTX, PPT) <span className="text-rose-400">*</span>
                   </label>
                   <input
                     type="file"
@@ -459,9 +459,9 @@ export default function AdminSlidesPage() {
                         }
                       }
                     }}
-                    className="w-full text-sm text-slate-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 cursor-pointer border border-slate-200 rounded-xl p-2 bg-slate-50"
+                    className="w-full text-sm text-ink-muted file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/15 cursor-pointer border border-line rounded-xl p-2 bg-ground"
                   />
-                  <p className="text-[11px] text-slate-400 mt-1">
+                  <p className="text-[11px] text-ink-faint mt-1">
                     Upload course lecture decks or module notes (PDF is recommended for seamless in-browser preview).
                   </p>
                 </div>
@@ -469,13 +469,13 @@ export default function AdminSlidesPage() {
 
               {/* Subject Selection */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Subject / Course <span className="text-rose-500">*</span>
+                <label className="block text-xs font-semibold text-ink-soft mb-1.5">
+                  Subject / Course <span className="text-rose-400">*</span>
                 </label>
                 <select
                   value={formSubjectId}
                   onChange={(e) => setFormSubjectId(e.target.value)}
-                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full h-11 px-3 bg-ground border border-line rounded-xl text-sm text-ink focus:bg-raised focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="">Select a subject...</option>
                   {subjects.map((s) => (
@@ -490,8 +490,8 @@ export default function AdminSlidesPage() {
               {/* Professor Name & Title */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                    Professor Name <span className="text-rose-500">*</span>
+                  <label className="block text-xs font-semibold text-ink-soft mb-1.5">
+                    Professor Name <span className="text-rose-400">*</span>
                   </label>
                   <input
                     type="text"
@@ -499,11 +499,11 @@ export default function AdminSlidesPage() {
                     placeholder="e.g. Dr. A. K. Sharma"
                     value={formProfessorName}
                     onChange={(e) => setFormProfessorName(e.target.value)}
-                    className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-11 px-3 bg-ground border border-line rounded-xl text-sm text-ink focus:bg-raised focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1.5">
                     Designation / Title
                   </label>
                   <input
@@ -511,15 +511,15 @@ export default function AdminSlidesPage() {
                     placeholder="e.g. Professor & HOD, CSE"
                     value={formProfessorTitle}
                     onChange={(e) => setFormProfessorTitle(e.target.value)}
-                    className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-11 px-3 bg-ground border border-line rounded-xl text-sm text-ink focus:bg-raised focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
               </div>
 
               {/* Topic Name */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Curriculum Topic <span className="text-rose-500">*</span>
+                <label className="block text-xs font-semibold text-ink-soft mb-1.5">
+                  Curriculum Topic <span className="text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -527,14 +527,14 @@ export default function AdminSlidesPage() {
                   placeholder="e.g. Dynamic Programming or CPU Scheduling"
                   value={formTopicName}
                   onChange={(e) => setFormTopicName(e.target.value)}
-                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full h-11 px-3 bg-ground border border-line rounded-xl text-sm text-ink focus:bg-raised focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               {/* Slide Title */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Presentation Title <span className="text-rose-500">*</span>
+                <label className="block text-xs font-semibold text-ink-soft mb-1.5">
+                  Presentation Title <span className="text-rose-400">*</span>
                 </label>
                 <input
                   type="text"
@@ -542,14 +542,14 @@ export default function AdminSlidesPage() {
                   placeholder="e.g. Module 4: Dynamic Programming & Optimal Substructure"
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
-                  className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full h-11 px-3 bg-ground border border-line rounded-xl text-sm text-ink focus:bg-raised focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               {/* Semester & Year */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1.5">
                     Semester
                   </label>
                   <input
@@ -557,11 +557,11 @@ export default function AdminSlidesPage() {
                     placeholder="e.g. 4th Semester"
                     value={formSemester}
                     onChange={(e) => setFormSemester(e.target.value)}
-                    className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-11 px-3 bg-ground border border-line rounded-xl text-sm text-ink focus:bg-raised focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1.5">
                     Academic Year
                   </label>
                   <input
@@ -569,14 +569,14 @@ export default function AdminSlidesPage() {
                     placeholder="e.g. 2026"
                     value={formAcademicYear}
                     onChange={(e) => setFormAcademicYear(e.target.value)}
-                    className="w-full h-11 px-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full h-11 px-3 bg-ground border border-line rounded-xl text-sm text-ink focus:bg-raised focus:outline-none focus:ring-2 focus:ring-primary"
                   />
                 </div>
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-semibold text-ink-soft mb-1.5">
                   Description / Remarks (Optional)
                 </label>
                 <textarea
@@ -584,29 +584,29 @@ export default function AdminSlidesPage() {
                   placeholder="Key concepts covered in this deck..."
                   value={formDescription}
                   onChange={(e) => setFormDescription(e.target.value)}
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full p-3 bg-ground border border-line rounded-xl text-sm text-ink focus:bg-raised focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               {/* Actions */}
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-line-soft">
                 <button
                   type="button"
                   onClick={() => {
                     setIsUploadOpen(false);
                     resetForm();
                   }}
-                  className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 text-sm font-medium hover:bg-slate-50 transition"
+                  className="px-4 py-2.5 rounded-xl border border-line-strong text-ink-soft text-sm font-medium hover:bg-raised transition"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saveMutation.isPending}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white text-sm font-semibold rounded-xl shadow-sm transition"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-primary-hover disabled:bg-primary/40 text-ground text-sm font-semibold rounded-xl transition"
                 >
                   {saveMutation.isPending ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-ground border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <UploadCloud className="w-4 h-4" />
                   )}

@@ -134,8 +134,8 @@ export default function SubjectManagementPage() {
       {/* Title & Action */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Subject Management</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-semibold text-ink tracking-tight">Subject Management</h1>
+          <p className="text-xs text-ink-muted mt-0.5">
             Configure academic curriculum subjects, course codes, departments, and active statuses
           </p>
         </div>
@@ -143,13 +143,13 @@ export default function SubjectManagementPage() {
         {!isReviewer ? (
           <button
             onClick={handleOpenAdd}
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-primary hover:bg-primary-hover text-ground rounded-lg text-xs font-semibold transition"
           >
             <Plus className="w-4 h-4" />
             <span>Add New Subject</span>
           </button>
         ) : (
-          <div className="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
+          <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-xs font-medium">
             Reviewer Mode: Read-Only Curriculum
           </div>
         )}
@@ -157,14 +157,14 @@ export default function SubjectManagementPage() {
 
       {/* Success Notification Banner */}
       {successMessage && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center justify-between animate-fadeIn">
+        <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 rounded-xl text-xs font-medium flex items-center justify-between animate-fadeIn">
           <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
             <span>{successMessage}</span>
           </div>
           <button
             onClick={() => setSuccessMessage(null)}
-            className="text-emerald-600 hover:text-emerald-800 p-1"
+            className="text-emerald-400 hover:text-emerald-300 p-1"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -172,25 +172,25 @@ export default function SubjectManagementPage() {
       )}
 
       {/* Subjects Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-          <span className="text-xs font-bold text-slate-700">
+      <div className="bg-surface rounded-xl border border-line overflow-hidden">
+        <div className="px-6 py-3.5 border-b border-line-soft flex items-center justify-between bg-ground">
+          <span className="text-xs font-semibold text-ink-soft">
             Registered Subjects ({subjects.length})
           </span>
         </div>
 
         {isLoading ? (
-          <div className="p-12 text-center text-xs text-slate-400 animate-pulse">
+          <div className="p-12 text-center text-xs text-ink-faint animate-pulse">
             Loading subjects...
           </div>
         ) : subjects.length === 0 ? (
-          <div className="p-12 text-center text-xs text-slate-400">
+          <div className="p-12 text-center text-xs text-ink-faint">
             No subjects created yet. Click &quot;Add New Subject&quot; above to create one.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] bg-slate-50">
+              <thead className="border-b border-line text-ink-muted font-semibold text-[10px] bg-ground">
                 <tr>
                   <th className="px-6 py-3">Code</th>
                   <th className="px-6 py-3">Subject Name</th>
@@ -200,32 +200,32 @@ export default function SubjectManagementPage() {
                   <th className="px-6 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-line-soft">
                 {subjects.map((s) => (
-                  <tr key={s.id} className="hover:bg-slate-50 transition">
-                    <td className="px-6 py-3 font-mono font-bold text-blue-700">
+                  <tr key={s.id} className="hover:bg-raised transition">
+                    <td className="px-6 py-3 font-mono font-semibold text-primary">
                       {s.code}
                     </td>
-                    <td className="px-6 py-3 font-semibold text-slate-800">
+                    <td className="px-6 py-3 font-semibold text-ink">
                       {s.name}
                       {s.description && (
-                        <p className="text-[11px] text-slate-400 font-normal truncate max-w-xs">
+                        <p className="text-[11px] text-ink-faint font-normal truncate max-w-xs">
                           {s.description}
                         </p>
                       )}
                     </td>
-                    <td className="px-6 py-3 text-slate-600">
+                    <td className="px-6 py-3 text-ink-soft">
                       {s.department || "-"}
                     </td>
-                    <td className="px-6 py-3 text-slate-600">
+                    <td className="px-6 py-3 text-ink-soft">
                       {s.semester ? `Semester ${s.semester}` : "-"}
                     </td>
                     <td className="px-6 py-3">
                       <span
                         className={`inline-flex px-2 py-0.5 rounded-full font-semibold text-[10px] ${
                           s.is_active
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-slate-100 text-slate-500 border border-slate-200"
+                            ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/25"
+                            : "bg-raised text-ink-muted border border-line"
                         }`}
                       >
                         {s.is_active ? "Active" : "Inactive"}
@@ -236,7 +236,7 @@ export default function SubjectManagementPage() {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => handleOpenEdit(s)}
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
+                            className="p-1.5 text-ink-muted hover:text-primary hover:bg-lift rounded-lg transition"
                             title="Edit Subject Details"
                           >
                             <Edit className="w-3.5 h-3.5" />
@@ -247,8 +247,8 @@ export default function SubjectManagementPage() {
                             }
                             className={`p-1.5 rounded-lg transition ${
                               s.is_active
-                                ? "text-slate-400 hover:text-amber-600 hover:bg-amber-50"
-                                : "text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+                                ? "text-ink-faint hover:text-amber-400 hover:bg-amber-500/10"
+                                : "text-ink-faint hover:text-emerald-400 hover:bg-emerald-500/10"
                             }`}
                             title={s.is_active ? "Deactivate Subject" : "Activate Subject"}
                           >
@@ -260,14 +260,14 @@ export default function SubjectManagementPage() {
                                 deleteSubjectMutation.mutate(s.id);
                               }
                             }}
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                            className="p-1.5 text-ink-faint hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
                             title="Delete Subject"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       ) : (
-                        <span className="text-[10px] text-slate-400 italic">View Only</span>
+                        <span className="text-[10px] text-ink-faint italic">View Only</span>
                       )}
                     </td>
                   </tr>
@@ -280,15 +280,15 @@ export default function SubjectManagementPage() {
 
       {/* Add / Edit Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <h3 className="text-sm font-bold text-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="bg-surface rounded-xl shadow-2xl max-w-lg w-full border border-line overflow-hidden">
+            <div className="px-6 py-4 border-b border-line-soft flex items-center justify-between bg-ground">
+              <h3 className="text-sm font-semibold text-ink">
                 {editingSubject ? `Edit Subject (${editingSubject.code})` : "Add New Subject"}
               </h3>
               <button
                 onClick={() => setModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-ink-faint hover:text-ink-soft"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -296,7 +296,7 @@ export default function SubjectManagementPage() {
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {errorMessage && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-lg flex items-center space-x-2">
+                <div className="p-3 bg-red-500/10 border border-red-500/25 text-red-300 text-xs rounded-lg flex items-center space-x-2">
                   <AlertCircle className="w-4 h-4 flex-shrink-0" />
                   <span>{errorMessage}</span>
                 </div>
@@ -304,7 +304,7 @@ export default function SubjectManagementPage() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-1">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1">
                     Subject Code *
                   </label>
                   <input
@@ -313,11 +313,11 @@ export default function SubjectManagementPage() {
                     placeholder="e.g. CS401"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono uppercase"
+                    className="w-full px-3 py-1.5 border border-line rounded-lg text-xs font-mono"
                   />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1">
                     Subject Name *
                   </label>
                   <input
@@ -326,14 +326,14 @@ export default function SubjectManagementPage() {
                     placeholder="e.g. Operating Systems"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                    className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1">
                     Department
                   </label>
                   <input
@@ -341,11 +341,11 @@ export default function SubjectManagementPage() {
                     placeholder="e.g. Computer Science"
                     value={department}
                     onChange={(e) => setDepartment(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                    className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1">
                     Semester
                   </label>
                   <input
@@ -353,13 +353,13 @@ export default function SubjectManagementPage() {
                     placeholder="e.g. 4"
                     value={semester}
                     onChange={(e) => setSemester(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                    className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-ink-soft mb-1">
                   Description
                 </label>
                 <textarea
@@ -367,22 +367,22 @@ export default function SubjectManagementPage() {
                   placeholder="Optional course or syllabus details..."
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                  className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                 />
               </div>
 
-              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+              <div className="flex justify-end space-x-2 pt-2 border-t border-line-soft">
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2 border border-line rounded-lg text-xs font-medium text-ink-soft hover:bg-raised"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={saveMutation.isPending}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold"
+                  className="px-4 py-2 bg-primary hover:bg-primary-hover text-ground rounded-lg text-xs font-semibold"
                 >
                   {saveMutation.isPending ? "Saving..." : "Save Subject"}
                 </button>

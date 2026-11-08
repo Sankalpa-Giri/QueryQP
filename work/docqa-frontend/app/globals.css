@@ -5,34 +5,69 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    color-scheme: dark; /* native selects, date pickers and scrollbars follow */
     --radius: 0.5rem;
+  }
+
+  html {
+    background: theme("colors.ground");
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: theme("colors.ground");
+    color: theme("colors.ink.DEFAULT");
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: theme("colors.primary.DEFAULT / 35%");
+  }
+
+  ::placeholder {
+    color: theme("colors.ink.faint");
+    opacity: 1;
+  }
+
+  /* In @layer base so any `focus:outline-none` utility still wins on inputs that draw their own ring. */
+  :focus-visible {
+    outline: 2px solid theme("colors.primary.DEFAULT");
+    outline-offset: 2px;
   }
 }
 
-body {
-  color: #0f172a;
-  background-color: #f8fafc;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
+/* Faint ruled-paper lines: the notebook from the intro, kept almost invisible. */
+.ruled {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 35px,
+    rgba(255, 255, 255, 0.04) 35px,
+    rgba(255, 255, 255, 0.04) 36px
+  );
+  -webkit-mask-image: linear-gradient(to bottom, #000 55%, transparent);
+  mask-image: linear-gradient(to bottom, #000 55%, transparent);
 }
 
 /* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  background: theme("colors.line.strong");
+  border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: theme("colors.ink.dim");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
 }

@@ -29,10 +29,10 @@ export default function AdminDashboardPage() {
   if (isLoading) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-8 bg-slate-200 rounded w-1/4" />
+        <div className="h-8 bg-lift rounded w-1/4" />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {[1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <div key={i} className="h-28 bg-slate-200 rounded-xl" />
+            <div key={i} className="h-28 bg-lift rounded-xl" />
           ))}
         </div>
       </div>
@@ -41,8 +41,8 @@ export default function AdminDashboardPage() {
 
   if (isError) {
     return (
-      <div className="p-6 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">
-        <h3 className="font-bold">Failed to load dashboard metrics</h3>
+      <div className="p-6 bg-red-500/10 border border-red-500/25 rounded-xl text-red-300 text-sm">
+        <h3 className="font-semibold">Failed to load dashboard metrics</h3>
         <p className="text-xs mt-1">{error instanceof Error ? error.message : "Error connecting to server"}</p>
       </div>
     );
@@ -64,49 +64,49 @@ export default function AdminDashboardPage() {
       title: "Total Uploaded Papers",
       value: m.total_papers,
       icon: FileText,
-      color: "text-blue-600 bg-blue-50 border-blue-200",
+      color: "text-ink-soft bg-raised border-line-strong",
       link: "/admin/batches",
     },
     {
       title: "Successfully Processed",
       value: m.processed_papers,
       icon: CheckCircle2,
-      color: "text-emerald-600 bg-emerald-50 border-emerald-200",
+      color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25",
       link: "/admin/batches",
     },
     {
       title: "Processing In Progress",
       value: m.processing_papers,
       icon: Clock,
-      color: "text-amber-600 bg-amber-50 border-amber-200",
+      color: "text-amber-400 bg-amber-500/10 border-amber-500/25",
       link: "/admin/batches",
     },
     {
       title: "Failed Processing",
       value: m.failed_papers,
       icon: AlertTriangle,
-      color: "text-red-600 bg-red-50 border-red-200",
+      color: "text-red-400 bg-red-500/10 border-red-500/25",
       link: "/admin/batches",
     },
     {
       title: "Total Extracted Questions",
       value: m.total_questions,
       icon: HelpCircle,
-      color: "text-indigo-600 bg-indigo-50 border-indigo-200",
+      color: "text-ink-soft bg-raised border-line-strong",
       link: "/admin/questions",
     },
     {
       title: "Published Questions",
       value: m.published_questions,
       icon: Eye,
-      color: "text-teal-600 bg-teal-50 border-teal-200",
+      color: "text-ink-soft bg-raised border-line-strong",
       link: "/admin/questions?publication_status=PUBLISHED",
     },
     {
       title: "Staged / Awaiting Review",
       value: m.awaiting_review_questions,
       icon: ClipboardCheck,
-      color: "text-amber-600 bg-amber-50 border-amber-200",
+      color: "text-amber-400 bg-amber-500/10 border-amber-500/25",
       link: "/admin/staging",
     },
   ];
@@ -116,31 +116,31 @@ export default function AdminDashboardPage() {
       {/* Title & Quick Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Admin Overview</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-semibold text-ink tracking-tight">Admin Overview</h1>
+          <p className="text-xs text-ink-muted mt-0.5">
             Real-time status of question papers, background workers, and knowledge bank
           </p>
         </div>
         <div className="flex items-center space-x-2.5">
           <Link
             href="/admin/upload"
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-primary hover:bg-primary-hover text-ground rounded-lg text-xs font-semibold transition"
           >
             <UploadCloud className="w-4 h-4" />
             <span>Upload Papers</span>
           </Link>
           <Link
             href="/admin/staging"
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-amber-50 border border-amber-200 hover:bg-amber-100 text-amber-800 rounded-lg text-xs font-semibold shadow-sm transition"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-amber-500/10 border border-amber-500/25 hover:bg-amber-500/15 text-amber-300 rounded-lg text-xs font-semibold transition"
           >
-            <ClipboardCheck className="w-4 h-4 text-amber-600" />
+            <ClipboardCheck className="w-4 h-4 text-amber-400" />
             <span>Staging Area ({m.awaiting_review_questions})</span>
           </Link>
           <Link
             href="/admin/questions"
-            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold shadow-sm transition"
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-surface border border-line hover:bg-raised text-ink-soft rounded-lg text-xs font-semibold transition"
           >
-            <HelpCircle className="w-4 h-4 text-slate-500" />
+            <HelpCircle className="w-4 h-4 text-ink-muted" />
             <span>Question Bank</span>
           </Link>
         </div>
@@ -154,17 +154,17 @@ export default function AdminDashboardPage() {
             <Link
               key={c.title}
               href={c.link}
-              className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm hover:shadow transition group flex flex-col justify-between"
+              className="bg-surface p-5 rounded-xl border border-line hover:shadow transition group flex flex-col justify-between"
             >
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-500">{c.title}</span>
+                <span className="text-xs font-medium text-ink-muted">{c.title}</span>
                 <div className={`p-2 rounded-lg border ${c.color}`}>
                   <Icon className="w-4 h-4" />
                 </div>
               </div>
               <div className="mt-4 flex items-baseline justify-between">
-                <span className="text-2xl font-extrabold text-slate-900">{c.value}</span>
-                <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-slate-600 transition" />
+                <span className="text-2xl font-semibold text-ink">{c.value}</span>
+                <ArrowRight className="w-4 h-4 text-ink-dim group-hover:text-ink-soft transition" />
               </div>
             </Link>
           );
@@ -172,15 +172,15 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Recent Ingestion Batches */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+      <div className="bg-surface rounded-xl border border-line overflow-hidden">
+        <div className="px-6 py-4 border-b border-line-soft flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <Layers className="w-4 h-4 text-blue-600" />
-            <h3 className="text-sm font-bold text-slate-800">Recent Ingestion Batches</h3>
+            <Layers className="w-4 h-4 text-primary" />
+            <h3 className="text-sm font-semibold text-ink">Recent Ingestion Batches</h3>
           </div>
           <Link
             href="/admin/batches"
-            className="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline flex items-center space-x-1"
+            className="text-xs font-semibold text-primary hover:text-primary hover:underline flex items-center space-x-1"
           >
             <span>View All Batches</span>
             <ArrowRight className="w-3.5 h-3.5" />
@@ -188,13 +188,13 @@ export default function AdminDashboardPage() {
         </div>
 
         {m.recent_batches.length === 0 ? (
-          <div className="p-8 text-center text-xs text-slate-400">
+          <div className="p-8 text-center text-xs text-ink-faint">
             No ingestion batches recorded yet. Upload a batch to get started.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-600">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-700 font-semibold uppercase tracking-wider text-[10px]">
+            <table className="w-full text-left text-xs text-ink-soft">
+              <thead className="bg-ground border-b border-line text-ink-soft font-semibold text-[10px]">
                 <tr>
                   <th className="px-6 py-3">Batch ID</th>
                   <th className="px-6 py-3">Status</th>
@@ -203,38 +203,38 @@ export default function AdminDashboardPage() {
                   <th className="px-6 py-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-line-soft">
                 {m.recent_batches.map((batch) => (
-                  <tr key={batch.id} className="hover:bg-slate-50 transition">
-                    <td className="px-6 py-3.5 font-mono text-slate-800 font-medium truncate max-w-xs">
+                  <tr key={batch.id} className="hover:bg-raised transition">
+                    <td className="px-6 py-3.5 font-mono text-ink font-medium truncate max-w-xs">
                       {batch.id}
                     </td>
                     <td className="px-6 py-3.5">
                       <span
                         className={`inline-flex px-2 py-0.5 rounded-full font-semibold text-[10px] ${
                           batch.status === "COMPLETED"
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/25"
                             : batch.status === "PROCESSING"
-                            ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse"
+                            ? "bg-amber-500/10 text-amber-300 border border-amber-500/25 animate-pulse"
                             : batch.status === "FAILED"
-                            ? "bg-red-50 text-red-700 border border-red-200"
-                            : "bg-slate-100 text-slate-700 border border-slate-200"
+                            ? "bg-red-500/10 text-red-300 border border-red-500/25"
+                            : "bg-raised text-ink-soft border border-line"
                         }`}
                       >
                         {batch.status}
                       </span>
                     </td>
                     <td className="px-6 py-3.5">
-                      <span className="font-semibold text-slate-800">{batch.processed_files}</span>
-                      <span className="text-slate-400"> / {batch.total_files}</span>
+                      <span className="font-semibold text-ink">{batch.processed_files}</span>
+                      <span className="text-ink-faint"> / {batch.total_files}</span>
                     </td>
-                    <td className="px-6 py-3.5 text-slate-500">
+                    <td className="px-6 py-3.5 text-ink-muted">
                       {new Date(batch.created_at).toLocaleString()}
                     </td>
                     <td className="px-6 py-3.5 text-right">
                       <Link
                         href={`/admin/batches?id=${batch.id}`}
-                        className="text-blue-600 hover:text-blue-800 font-semibold"
+                        className="text-primary hover:text-primary font-semibold"
                       >
                         Inspect →
                       </Link>

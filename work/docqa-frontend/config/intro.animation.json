@@ -1,0 +1,133 @@
+{
+  "_readme": "Source of truth for the intro. The React code in src/components/intro reads timings and geometry from here, so editing this file changes the animation. The 'aiPrompt' field is a plain-language version for Lottie / Spline / Runway / Pika style tools. The 'palette' block is copied from theme.json by `npm run sync:palette`.",
+  "meta": {
+    "name": "notebook-search-intro",
+    "version": "1.0.0",
+    "totalDuration": 6.5,
+    "fps": 60,
+    "canvas": { "width": 800, "height": 600, "unit": "svg-user-units" },
+    "skipAfterFirstVisit": true,
+    "storageKey": "notebook-intro-seen-v1",
+    "skipKey": "Escape"
+  },
+  "aiPrompt": "Cinematic 6.5 second brand intro on a #0D0D0D background. A minimal ruled notebook with metal spiral rings on its left edge sits at the centre of the frame. A slim stylus with an orange (#FF5A2C) cap is docked in a channel on the notebook's right edge. The word 'Search' fades in on the third ruled line while its letter spacing tightens from wide to normal. The stylus lifts out of its channel, tilts about 32 degrees, and hand-draws a glowing orange loop around 'Search', then hops and draws one large oval around the whole notebook with a small overshoot, like a pen marking a page. A ten-band ribbon sweep with colours stepping from orange (#FF5C22) through brown and grey to white wipes left to right across the frame while the camera pushes in. The ribbons retract upward to reveal the landing page. Style: premium, minimal, Netflix-intro rhythm with Apple-keynote restraint. No text other than the word 'Search'. Flat vector shapes, soft shadows, 60fps.",
+  "palette": {
+    "primary": "#FF5A2C",
+    "background": "#0D0D0D",
+    "surface": "#1A1A1A",
+    "border": "#2A2A2A",
+    "textPrimary": "#EAEAEA",
+    "accentGlow": "#FF5A2C80",
+    "ribbon": [
+      "#FF5C22",
+      "#D45225",
+      "#A84428",
+      "#7A3D2E",
+      "#4A322D",
+      "#474747",
+      "#757575",
+      "#A3A3A3",
+      "#D1D1D1",
+      "#FFFFFF"
+    ]
+  },
+  "timeline": [
+    { "id": "notebook-in", "at": 0.2, "duration": 0.9 },
+    { "id": "search-in", "at": 0.9, "duration": 0.8 },
+    { "id": "stylus-detach", "at": 1.7, "duration": 0.55 },
+    { "id": "circle-word", "at": 2.3, "duration": 0.9 },
+    { "id": "circle-notebook", "at": 3.3, "duration": 1.3 },
+    { "id": "ribbon-sweep", "at": 4.75, "duration": 0.85 },
+    { "id": "reveal", "at": 5.6, "duration": 0.9 },
+    { "id": "done", "at": 6.5, "duration": 0 }
+  ],
+  "easing": {
+    "out": [0.22, 1, 0.36, 1],
+    "inOut": [0.65, 0, 0.35, 1],
+    "in": [0.7, 0, 0.84, 0],
+    "pen": [0.45, 0.05, 0.35, 1]
+  },
+  "elements": {
+    "camera": {
+      "transformOrigin": "50% 46%",
+      "idleZoom": { "from": 0.94, "to": 1.05, "duration": 4.75 },
+      "pushIn": { "to": 1.4, "duration": 0.85 }
+    },
+    "backdropGlow": {
+      "color": "#FF5A2C",
+      "restOpacity": 0.14,
+      "peakOpacity": 0.5,
+      "radius": "48%"
+    },
+    "notebook": {
+      "x": 240,
+      "y": 150,
+      "width": 300,
+      "height": 280,
+      "radius": 20,
+      "ruledLines": { "count": 5, "firstY": 200, "gap": 44, "insetLeft": 40, "insetRight": 24 },
+      "rings": { "count": 6, "firstY": 182, "gap": 38, "width": 24, "height": 14 },
+      "holder": { "width": 32, "inset": 8 },
+      "entry": { "fromY": 24 }
+    },
+    "searchWord": {
+      "text": "Search",
+      "x": 402,
+      "y": 282,
+      "fontSize": 42,
+      "fontWeight": 600,
+      "entry": { "letterSpacingFrom": "0.32em", "letterSpacingTo": "0.02em" }
+    },
+    "stylus": {
+      "docked": { "x": 554, "y": 420, "rotation": 0 },
+      "writingRotation": 32,
+      "wobble": 2,
+      "liftHeight": 26,
+      "hopDuration": 0.25,
+      "length": 246
+    },
+    "strokes": {
+      "color": "#FF5A2C",
+      "width": 3,
+      "word": {
+        "cx": 402,
+        "cy": 268,
+        "rx": 92,
+        "ry": 34,
+        "startDeg": -115,
+        "sweepDeg": 375,
+        "grow": 0.05,
+        "tiltDeg": -3
+      },
+      "notebook": {
+        "cx": 403,
+        "cy": 292,
+        "rx": 262,
+        "ry": 216,
+        "startDeg": -100,
+        "sweepDeg": 378,
+        "grow": 0.03,
+        "tiltDeg": -2
+      }
+    },
+    "ribbons": {
+      "count": 10,
+      "direction": "left-to-right",
+      "stagger": 0.04,
+      "itemDuration": 0.45,
+      "inOrigin": "bottom",
+      "outOrigin": "top"
+    }
+  },
+  "handoff": {
+    "revealPhase": "reveal",
+    "landingStartsAt": "reveal",
+    "note": "The landing hero listens to useIntro().revealed and starts its own entrance the moment ribbons begin to retract."
+  },
+  "accessibility": {
+    "prefersReducedMotion": "skip intro entirely",
+    "skipButton": { "label": "Skip intro", "appearsAfter": 0.8 },
+    "escapeToSkip": true,
+    "scrollLockedWhilePlaying": true
+  }
+}

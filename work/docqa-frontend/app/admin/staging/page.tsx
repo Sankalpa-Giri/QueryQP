@@ -348,14 +348,14 @@ function StagingAreaContent() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <div className="flex items-center space-x-2">
-            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+            <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/40">
               Stage 2 Verification
             </span>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+            <h1 className="text-2xl font-semibold text-ink tracking-tight">
               Staging Area
             </h1>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-ink-muted mt-1">
             Questions parsed arrive here first for manual verification.
             Inspect, manually add missing questions, and approve verified questions into the Question Bank.
           </p>
@@ -364,7 +364,7 @@ function StagingAreaContent() {
         <div className="flex items-center gap-2.5 flex-wrap shrink-0">
           <button
             onClick={handleOpenAddModal}
-            className="inline-flex items-center space-x-1.5 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+            className="inline-flex items-center space-x-1.5 px-3 py-2 bg-primary hover:bg-primary-hover text-ground rounded-lg text-xs font-semibold transition"
           >
             <Plus className="w-3.5 h-3.5" />
             <span>Add Question Manually</span>
@@ -372,31 +372,31 @@ function StagingAreaContent() {
           <button
             onClick={() => refetch()}
             disabled={isLoading || isRefetching}
-            className="inline-flex items-center space-x-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold shadow-sm transition"
+            className="inline-flex items-center space-x-1.5 px-3 py-2 bg-surface border border-line hover:bg-raised text-ink-soft rounded-lg text-xs font-semibold transition"
           >
-            <RefreshCw className={`w-3.5 h-3.5 text-slate-400 ${isRefetching ? "animate-spin" : ""}`} />
+            <RefreshCw className={`w-3.5 h-3.5 text-ink-faint ${isRefetching ? "animate-spin" : ""}`} />
             <span>Refresh</span>
           </button>
           <Link
             href="/admin/questions"
-            className="inline-flex items-center space-x-1.5 px-3 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+            className="inline-flex items-center space-x-1.5 px-3 py-2 bg-ink hover:bg-white text-ground rounded-lg text-xs font-semibold transition"
           >
             <span>Question Bank</span>
-            <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+            <ArrowRight className="w-3.5 h-3.5 text-ink-faint" />
           </Link>
         </div>
       </div>
 
       {/* Success Notification Banner */}
       {actionSuccessMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-xs font-medium flex items-center justify-between animate-fadeIn">
+        <div className="p-3 bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 rounded-xl text-xs font-medium flex items-center justify-between animate-fadeIn">
           <div className="flex items-center space-x-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
             <span>{actionSuccessMsg}</span>
           </div>
           <button
             onClick={() => setActionSuccessMsg(null)}
-            className="text-emerald-600 hover:text-emerald-800 p-1"
+            className="text-emerald-400 hover:text-emerald-300 p-1"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -405,19 +405,19 @@ function StagingAreaContent() {
 
       {/* Paper-scoped Banner (when a paper is active) */}
       {activeDocument && (
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 shadow-sm">
+        <div className="bg-raised border border-line-strong rounded-xl p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           <div className="space-y-1">
             <div className="flex items-center space-x-2">
-              <FileText className="w-4 h-4 text-blue-600" />
-              <span className="font-bold text-sm text-slate-900 truncate">
+              <FileText className="w-4 h-4 text-primary" />
+              <span className="font-semibold text-sm text-ink truncate">
                 {activeDocument.filename}
               </span>
             </div>
-            <div className="text-xs text-slate-600 flex flex-wrap items-center gap-2">
-              <span className="px-2 py-0.5 bg-white border border-blue-200 rounded font-semibold text-blue-700">
+            <div className="text-xs text-ink-soft flex flex-wrap items-center gap-2">
+              <span className="px-2 py-0.5 bg-surface border border-line-strong rounded font-semibold text-primary">
                 {activeDocument.subject_name || "Unknown Subject"}
               </span>
-              <span className="px-2 py-0.5 bg-white border border-slate-200 rounded font-medium text-slate-700">
+              <span className="px-2 py-0.5 bg-surface border border-line rounded font-medium text-ink-soft">
                 {activeDocument.exam_year} {activeDocument.exam_type}
               </span>
               <span>&bull;</span>
@@ -435,7 +435,7 @@ function StagingAreaContent() {
                 }
               }}
               disabled={aiReExtractMutation.isPending}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-ground rounded-lg text-xs font-semibold transition"
               title="Full AI Re-Extraction directly from document markdown"
             >
               <Sparkles className={`w-3.5 h-3.5 ${aiReExtractMutation.isPending ? "animate-spin" : ""}`} />
@@ -444,7 +444,7 @@ function StagingAreaContent() {
             <button
               onClick={() => aiRefineAllMutation.mutate(activeDocument.id)}
               disabled={aiRefineAllMutation.isPending || questions.length === 0}
-              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-primary hover:bg-primary-hover disabled:opacity-50 text-ground rounded-lg text-xs font-semibold transition"
               title="Format LaTeX math & fix OCR noise across all pending questions"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${aiRefineAllMutation.isPending ? "animate-spin" : ""}`} />
@@ -453,7 +453,7 @@ function StagingAreaContent() {
             <button
               onClick={() => approveAllDocMutation.mutate(activeDocument.id)}
               disabled={approveAllDocMutation.isPending || questions.length === 0}
-              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+              className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition"
             >
               <CheckCircle className="w-4 h-4" />
               <span>
@@ -464,7 +464,7 @@ function StagingAreaContent() {
             </button>
             <button
               onClick={() => setSelectedDocId("")}
-              className="px-3 py-2 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-xs font-medium transition"
+              className="px-3 py-2 bg-surface hover:bg-lift border border-line text-ink-soft rounded-lg text-xs font-medium transition"
             >
               Show All Papers
             </button>
@@ -473,17 +473,17 @@ function StagingAreaContent() {
       )}
 
       {/* Filter Toolbar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+      <div className="bg-surface p-4 rounded-xl border border-line space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2.5 text-xs">
           {/* Paper / Document Selector */}
           <div>
-            <label className="block text-slate-500 font-semibold mb-1">
+            <label className="block text-ink-muted font-semibold mb-1">
               Filter by Paper
             </label>
             <select
               value={selectedDocId}
               onChange={(e) => setSelectedDocId(e.target.value)}
-              className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800"
+              className="w-full h-8 px-2 bg-ground border border-line rounded-lg text-ink"
             >
               <option value="">All Uploaded Papers</option>
               {documents.map((doc) => (
@@ -496,11 +496,11 @@ function StagingAreaContent() {
 
           {/* Subject Filter */}
           <div>
-            <label className="block text-slate-500 font-semibold mb-1">Subject</label>
+            <label className="block text-ink-muted font-semibold mb-1">Subject</label>
             <select
               value={subjectId}
               onChange={(e) => setSubjectId(e.target.value)}
-              className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800"
+              className="w-full h-8 px-2 bg-ground border border-line rounded-lg text-ink"
             >
               <option value="">All Subjects</option>
               {subjects.map((s) => (
@@ -513,23 +513,23 @@ function StagingAreaContent() {
 
           {/* Exam Year Filter */}
           <div>
-            <label className="block text-slate-500 font-semibold mb-1">Year</label>
+            <label className="block text-ink-muted font-semibold mb-1">Year</label>
             <input
               type="number"
               placeholder="All Years"
               value={examYear}
               onChange={(e) => setExamYear(e.target.value)}
-              className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800"
+              className="w-full h-8 px-2 bg-ground border border-line rounded-lg text-ink"
             />
           </div>
 
           {/* Exam Type Filter */}
           <div>
-            <label className="block text-slate-500 font-semibold mb-1">Exam Type</label>
+            <label className="block text-ink-muted font-semibold mb-1">Exam Type</label>
             <select
               value={examType}
               onChange={(e) => setExamType(e.target.value)}
-              className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800"
+              className="w-full h-8 px-2 bg-ground border border-line rounded-lg text-ink"
             >
               <option value="">All Types</option>
               <option value="MIDSEM">Midsem</option>
@@ -539,35 +539,35 @@ function StagingAreaContent() {
 
           {/* Search Keywords */}
           <div>
-            <label className="block text-slate-500 font-semibold mb-1">Keywords</label>
+            <label className="block text-ink-muted font-semibold mb-1">Keywords</label>
             <input
               type="text"
               placeholder="Search text..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800"
+              className="w-full h-8 px-2 bg-ground border border-line rounded-lg text-ink"
             />
           </div>
         </div>
       </div>
 
       {/* Bulk Action & Controls Header */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-3.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50">
+      <div className="bg-surface rounded-xl border border-line overflow-hidden">
+        <div className="px-6 py-3.5 border-b border-line-soft flex flex-wrap items-center justify-between gap-3 bg-ground">
           <div className="flex items-center space-x-3">
             <button
               onClick={toggleSelectAll}
-              className="flex items-center space-x-1.5 text-xs font-semibold text-slate-700 hover:text-slate-900"
+              className="flex items-center space-x-1.5 text-xs font-semibold text-ink-soft hover:text-ink"
             >
               {questions.length > 0 && selectedQuestionIds.length === questions.length ? (
-                <CheckSquare className="w-4 h-4 text-blue-600" />
+                <CheckSquare className="w-4 h-4 text-primary" />
               ) : (
-                <Square className="w-4 h-4 text-slate-400" />
+                <Square className="w-4 h-4 text-ink-faint" />
               )}
               <span>Select All</span>
             </button>
-            <span className="text-slate-300">|</span>
-            <span className="text-xs font-bold text-slate-800">
+            <span className="text-ink-dim">|</span>
+            <span className="text-xs font-semibold text-ink">
               {questions.length} Pending Questions in Staging
             </span>
           </div>
@@ -577,7 +577,7 @@ function StagingAreaContent() {
               <button
                 onClick={() => bulkApproveMutation.mutate(selectedQuestionIds)}
                 disabled={bulkApproveMutation.isPending}
-                className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+                className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition"
               >
                 <CheckCircle className="w-3.5 h-3.5" />
                 <span>
@@ -592,7 +592,7 @@ function StagingAreaContent() {
               <button
                 onClick={() => approveAllDocMutation.mutate(selectedDocId)}
                 disabled={approveAllDocMutation.isPending}
-                className="inline-flex items-center space-x-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+                className="inline-flex items-center space-x-1 px-3 py-1.5 bg-primary hover:bg-primary-hover disabled:opacity-50 text-ground rounded-lg text-xs font-semibold transition"
               >
                 <CheckCircle className="w-3.5 h-3.5" />
                 <span>Approve All in This Paper</span>
@@ -603,30 +603,30 @@ function StagingAreaContent() {
 
         {/* Content Body */}
         {isLoading ? (
-          <div className="p-12 text-center text-xs text-slate-400 animate-pulse">
+          <div className="p-12 text-center text-xs text-ink-faint animate-pulse">
             Loading staged question records...
           </div>
         ) : questions.length === 0 ? (
           <div className="p-12 text-center space-y-3">
-            <ClipboardCheck className="w-10 h-10 text-emerald-500 mx-auto" />
-            <h3 className="text-sm font-bold text-slate-800">
+            <ClipboardCheck className="w-10 h-10 text-emerald-400 mx-auto" />
+            <h3 className="text-sm font-semibold text-ink">
               No Pending Questions in Staging Area
             </h3>
-            <p className="text-xs text-slate-500 max-w-md mx-auto">
+            <p className="text-xs text-ink-muted max-w-md mx-auto">
               All parsed questions have been approved and moved to the Question Bank,
               or no papers matching the selected filters are awaiting verification.
             </p>
             <div className="pt-2 flex items-center justify-center space-x-3">
               <button
                 onClick={handleOpenAddModal}
-                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold shadow-sm hover:bg-blue-700 transition"
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-primary text-ground rounded-lg text-xs font-semibold hover:bg-primary-hover transition"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Add Question Manually</span>
               </button>
               <Link
                 href="/admin/questions"
-                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-slate-900 text-white rounded-lg text-xs font-semibold shadow-sm hover:bg-slate-800 transition"
+                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-ink text-ground rounded-lg text-xs font-semibold hover:bg-white transition"
               >
                 <span>View Question Bank</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -636,7 +636,7 @@ function StagingAreaContent() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] bg-slate-50">
+              <thead className="border-b border-line text-ink-muted font-semibold text-[10px] bg-ground">
                 <tr>
                   <th className="px-4 py-3 w-8">
                     <span className="sr-only">Select</span>
@@ -649,7 +649,7 @@ function StagingAreaContent() {
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-line-soft">
                 {questions.map((q) => {
                   const isExpanded = Boolean(expandedIds[q.id]);
                   const isSelected = selectedQuestionIds.includes(q.id);
@@ -657,8 +657,8 @@ function StagingAreaContent() {
                   return (
                     <tr
                       key={q.id}
-                      className={`hover:bg-slate-50/80 transition ${
-                        isSelected ? "bg-blue-50/40" : ""
+                      className={`hover:bg-raised/80 transition ${
+                        isSelected ? "bg-raised" : ""
                       }`}
                     >
                       {/* Checkbox */}
@@ -666,10 +666,10 @@ function StagingAreaContent() {
                         <button
                           type="button"
                           onClick={() => toggleSelectOne(q.id)}
-                          className="pt-0.5 text-slate-400 hover:text-blue-600"
+                          className="pt-0.5 text-ink-faint hover:text-primary"
                         >
                           {isSelected ? (
-                            <CheckSquare className="w-4 h-4 text-blue-600" />
+                            <CheckSquare className="w-4 h-4 text-primary" />
                           ) : (
                             <Square className="w-4 h-4" />
                           )}
@@ -677,14 +677,14 @@ function StagingAreaContent() {
                       </td>
 
                       {/* Number */}
-                      <td className="px-4 py-3 font-bold text-amber-700 whitespace-nowrap align-top">
-                        <span className="px-2 py-0.5 bg-amber-50 rounded border border-amber-200">
+                      <td className="px-4 py-3 font-semibold text-amber-300 whitespace-nowrap align-top">
+                        <span className="px-2 py-0.5 bg-amber-500/10 rounded border border-amber-500/25">
                           {q.question_number}
                         </span>
                       </td>
 
                       {/* Text & Topics */}
-                      <td className="px-4 py-3 text-slate-900 max-w-lg align-top">
+                      <td className="px-4 py-3 text-ink max-w-lg align-top">
                         <div
                           onClick={() => toggleExpand(q.id)}
                           className="cursor-pointer leading-relaxed text-xs md:text-sm"
@@ -701,7 +701,7 @@ function StagingAreaContent() {
                             {q.topics.map((t, idx) => (
                               <span
                                 key={idx}
-                                className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-medium"
+                                className="px-1.5 py-0.5 bg-raised text-ink-soft rounded text-[10px] font-medium"
                               >
                                 #{t}
                               </span>
@@ -711,14 +711,14 @@ function StagingAreaContent() {
                       </td>
 
                       {/* Subject & Paper */}
-                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap align-top">
-                        <div className="font-semibold text-slate-800">
+                      <td className="px-4 py-3 text-ink-soft whitespace-nowrap align-top">
+                        <div className="font-semibold text-ink">
                           {q.subject_name}
                         </div>
-                        <div className="text-[10px] text-slate-400 mt-0.5">
+                        <div className="text-[10px] text-ink-faint mt-0.5">
                           {q.exam_year} {q.exam_type} &bull; Page {q.page_number}
                         </div>
-                        <div className="text-[10px] text-slate-400 truncate max-w-[180px]">
+                        <div className="text-[10px] text-ink-faint truncate max-w-[180px]">
                           {q.source_filename}
                         </div>
                       </td>
@@ -726,18 +726,18 @@ function StagingAreaContent() {
                       {/* Marks */}
                       <td className="px-4 py-3 whitespace-nowrap align-top">
                         {q.marks !== null && q.marks !== undefined ? (
-                          <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded font-semibold text-[11px] border border-emerald-200">
+                          <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-300 rounded font-semibold text-[11px] border border-emerald-500/25">
                             <Award className="w-3 h-3" />
                             <span>{q.marks}M</span>
                           </span>
                         ) : (
-                          <span className="text-slate-400 text-[11px]">-</span>
+                          <span className="text-ink-faint text-[11px]">-</span>
                         )}
                       </td>
 
                       {/* Status */}
                       <td className="px-4 py-3 whitespace-nowrap align-top">
-                        <span className="px-2 py-0.5 rounded font-semibold text-[10px] bg-amber-50 text-amber-700 border border-amber-200">
+                        <span className="px-2 py-0.5 rounded font-semibold text-[10px] bg-amber-500/10 text-amber-300 border border-amber-500/25">
                           Pending
                         </span>
                       </td>
@@ -750,7 +750,7 @@ function StagingAreaContent() {
                             onClick={() => aiRefineMutation.mutate(q.id)}
                             disabled={aiRefineMutation.isPending && (aiRefineMutation.variables as string) === q.id}
                             title="AI Clean OCR & Format LaTeX Math"
-                            className="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition"
+                            className="p-1.5 text-primary hover:text-primary hover:bg-primary/10 rounded-lg transition"
                           >
                             <Sparkles className={`w-3.5 h-3.5 ${aiRefineMutation.isPending && (aiRefineMutation.variables as string) === q.id ? "animate-spin" : ""}`} />
                           </button>
@@ -760,7 +760,7 @@ function StagingAreaContent() {
                             onClick={() => aiTopicsMutation.mutate(q.id)}
                             disabled={aiTopicsMutation.isPending && (aiTopicsMutation.variables as string) === q.id}
                             title="AI Auto-Tag Syllabus Topics"
-                            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition"
+                            className="p-1.5 text-primary hover:text-primary hover:bg-primary/10 rounded-lg transition"
                           >
                             <Tag className={`w-3.5 h-3.5 ${aiTopicsMutation.isPending && (aiTopicsMutation.variables as string) === q.id ? "animate-spin" : ""}`} />
                           </button>
@@ -769,7 +769,7 @@ function StagingAreaContent() {
                           <button
                             onClick={() => setInspectQuestionId(q.id)}
                             title="Inspect PDF Source Provenance"
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
+                            className="p-1.5 text-ink-muted hover:text-primary hover:bg-lift rounded-lg transition"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                           </button>
@@ -778,7 +778,7 @@ function StagingAreaContent() {
                           <button
                             onClick={() => handleOpenEdit(q)}
                             title="Edit Question Content"
-                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition"
+                            className="p-1.5 text-ink-muted hover:text-primary hover:bg-lift rounded-lg transition"
                           >
                             <Edit className="w-3.5 h-3.5" />
                           </button>
@@ -788,9 +788,9 @@ function StagingAreaContent() {
                             onClick={() => approveSingleMutation.mutate(q.id)}
                             disabled={approveSingleMutation.isPending}
                             title="Approve and Move to Question Bank"
-                            className="inline-flex items-center space-x-1 px-2 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition"
+                            className="inline-flex items-center space-x-1 px-2 py-1 text-xs font-semibold text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/15 rounded-lg border border-emerald-500/25 transition"
                           >
-                            <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                            <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
                             <span>Approve</span>
                           </button>
 
@@ -798,7 +798,7 @@ function StagingAreaContent() {
                           <button
                             onClick={() => handleDeleteConfirm(q)}
                             title="Discard / Delete from Staging"
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                            className="p-1.5 text-ink-faint hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -815,20 +815,20 @@ function StagingAreaContent() {
 
       {/* Manual Add Question Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-xl shadow-2xl max-w-xl w-full border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-surface rounded-xl shadow-2xl max-w-xl w-full border border-line overflow-hidden">
+            <div className="px-6 py-4 border-b border-line-soft flex items-center justify-between bg-ground">
               <div>
-                <h3 className="text-sm font-bold text-slate-800">
+                <h3 className="text-sm font-semibold text-ink">
                   Add Question to Question Bank
                 </h3>
-                <p className="text-[11px] text-slate-500">
+                <p className="text-[11px] text-ink-muted">
                   Manually add a question or missing bit. It will be immediately saved to the Question Bank with provided topic tags.
                 </p>
               </div>
               <button
                 onClick={() => setShowAddModal(false)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-ink-faint hover:text-ink-soft"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -836,14 +836,14 @@ function StagingAreaContent() {
 
             <form onSubmit={handleSaveAdd} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-ink-soft mb-1">
                   Target Question Paper *
                 </label>
                 <select
                   required
                   value={addDocId}
                   onChange={(e) => setAddDocId(e.target.value)}
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs bg-slate-50"
+                  className="w-full px-3 py-1.5 border border-line rounded-lg text-xs bg-ground"
                 >
                   <option value="">Select Paper</option>
                   {documents.map((d) => (
@@ -856,7 +856,7 @@ function StagingAreaContent() {
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1">
                     Question No. *
                   </label>
                   <input
@@ -865,11 +865,11 @@ function StagingAreaContent() {
                     value={addNumber}
                     onChange={(e) => setAddNumber(e.target.value)}
                     placeholder="e.g. 1(c), 2(b)"
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                    className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1">
                     Marks
                   </label>
                   <input
@@ -878,11 +878,11 @@ function StagingAreaContent() {
                     value={addMarks}
                     onChange={(e) => setAddMarks(e.target.value)}
                     placeholder="e.g. 5"
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                    className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1">
                     Page No.
                   </label>
                   <input
@@ -891,14 +891,14 @@ function StagingAreaContent() {
                     value={addPage}
                     onChange={(e) => setAddPage(e.target.value)}
                     placeholder="e.g. 1"
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                    className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-slate-700">
+                  <label className="text-xs font-semibold text-ink-soft">
                     Question Text (Markdown, Tables & Diagrams supported) *
                   </label>
                   <div className="flex items-center space-x-1.5">
@@ -909,7 +909,7 @@ function StagingAreaContent() {
                           prev ? `${prev.trim()}\n\n${SAMPLE_TABLE_TEMPLATE.trim()}` : SAMPLE_TABLE_TEMPLATE.trim()
                         );
                       }}
-                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 transition"
+                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-primary hover:text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/30 transition"
                     >
                       <TableIcon className="w-3 h-3" />
                       <span>+ Table</span>
@@ -921,7 +921,7 @@ function StagingAreaContent() {
                           prev ? `${prev.trim()}\n\n${SAMPLE_DIAGRAM_REF_TEMPLATE.trim()}` : SAMPLE_DIAGRAM_REF_TEMPLATE.trim()
                         );
                       }}
-                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-purple-700 hover:text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 transition"
+                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-primary hover:text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/30 transition"
                       title="Insert reference note directing students to inspect diagram in the original paper"
                     >
                       <ImageIcon className="w-3 h-3" />
@@ -934,7 +934,7 @@ function StagingAreaContent() {
                           const embedCode = `\n\n![Figure: Question Diagram](/api/v1/documents/${addDocId}/pages/${addPage || 1}/image)\n`;
                           setAddText((prev) => (prev ? `${prev.trim()}${embedCode}` : embedCode.trim()));
                         }}
-                        className="inline-flex items-center space-x-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 transition"
+                        className="inline-flex items-center space-x-1 text-[11px] font-semibold text-emerald-300 hover:text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25 transition"
                         title="Embed the exact page diagram image inline in the question"
                       >
                         <ImageIcon className="w-3 h-3" />
@@ -949,15 +949,15 @@ function StagingAreaContent() {
                   value={addText}
                   onChange={(e) => setAddText(e.target.value)}
                   placeholder="Enter full question wording... You can use | Column 1 | Column 2 | for tables"
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono"
+                  className="w-full px-3 py-2 border border-line rounded-lg text-xs font-mono"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Tip: Tables use standard Markdown syntax (<code className="text-slate-600 font-mono">| Header 1 | Header 2 |</code> followed by <code className="text-slate-600 font-mono">| --- | --- |</code>).
+                <p className="text-[10px] text-ink-faint mt-1">
+                  Tip: Tables use standard Markdown syntax (<code className="text-ink-soft font-mono">| Header 1 | Header 2 |</code> followed by <code className="text-ink-soft font-mono">| --- | --- |</code>).
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-ink-soft mb-1">
                   Topic Tags (comma-separated)
                 </label>
                 <input
@@ -965,22 +965,22 @@ function StagingAreaContent() {
                   value={addTopics}
                   onChange={(e) => setAddTopics(e.target.value)}
                   placeholder="e.g. Viterbi Algorithm, HMM, Probability"
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                  className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                 />
               </div>
 
-              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+              <div className="flex justify-end space-x-2 pt-2 border-t border-line-soft">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2 border border-line rounded-lg text-xs font-medium text-ink-soft hover:bg-raised"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending}
-                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm"
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold"
                 >
                   <CheckCircle className="w-3.5 h-3.5" />
                   <span>{createMutation.isPending ? "Saving..." : "Save to Question Bank"}</span>
@@ -993,20 +993,20 @@ function StagingAreaContent() {
 
       {/* Edit Question Modal */}
       {editingQuestion && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-xl shadow-2xl max-w-xl w-full border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-surface rounded-xl shadow-2xl max-w-xl w-full border border-line overflow-hidden">
+            <div className="px-6 py-4 border-b border-line-soft flex items-center justify-between bg-ground">
               <div>
-                <h3 className="text-sm font-bold text-slate-800">
+                <h3 className="text-sm font-semibold text-ink">
                   Verify & Edit Staged Question ({editingQuestion.question_number})
                 </h3>
-                <p className="text-[11px] text-slate-400">
+                <p className="text-[11px] text-ink-faint">
                   Fix any LlamaParse segmentation or numbering errors before approval
                 </p>
               </div>
               <button
                 onClick={() => setEditingQuestion(null)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-ink-faint hover:text-ink-soft"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1015,7 +1015,7 @@ function StagingAreaContent() {
             <form onSubmit={handleSaveEdit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1">
                     Question Number / Subquestion
                   </label>
                   <input
@@ -1024,11 +1024,11 @@ function StagingAreaContent() {
                     value={editNumber}
                     onChange={(e) => setEditNumber(e.target.value)}
                     placeholder="e.g. 1(a), 2(b)"
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                    className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1">
                     Marks Allocation
                   </label>
                   <input
@@ -1037,14 +1037,14 @@ function StagingAreaContent() {
                     value={editMarks}
                     onChange={(e) => setEditMarks(e.target.value)}
                     placeholder="e.g. 10"
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                    className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-slate-700">
+                  <label className="text-xs font-semibold text-ink-soft">
                     Question Text (Markdown, Tables & Diagrams supported)
                   </label>
                   <div className="flex items-center space-x-1.5">
@@ -1073,7 +1073,7 @@ function StagingAreaContent() {
                           setIsRefiningModal(false);
                         }
                       }}
-                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-purple-700 hover:text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 transition disabled:opacity-50"
+                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-primary hover:text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/30 transition disabled:opacity-50"
                       title="Auto-clean OCR, format KaTeX math, and detect marks/topics with AI"
                     >
                       <Sparkles className={`w-3 h-3 ${isRefiningModal ? "animate-spin" : ""}`} />
@@ -1086,7 +1086,7 @@ function StagingAreaContent() {
                           prev ? `${prev.trim()}\n\n${SAMPLE_TABLE_TEMPLATE.trim()}` : SAMPLE_TABLE_TEMPLATE.trim()
                         );
                       }}
-                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 transition"
+                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-primary hover:text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/30 transition"
                     >
                       <TableIcon className="w-3 h-3" />
                       <span>+ Table</span>
@@ -1098,7 +1098,7 @@ function StagingAreaContent() {
                           prev ? `${prev.trim()}\n\n${SAMPLE_DIAGRAM_REF_TEMPLATE.trim()}` : SAMPLE_DIAGRAM_REF_TEMPLATE.trim()
                         );
                       }}
-                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-purple-700 hover:text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 transition"
+                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-primary hover:text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/30 transition"
                       title="Insert reference note directing students to inspect diagram in the original paper"
                     >
                       <ImageIcon className="w-3 h-3" />
@@ -1111,7 +1111,7 @@ function StagingAreaContent() {
                           const embedCode = `\n\n![Figure: Question Diagram](/api/v1/documents/${editingQuestion.document_id}/pages/${editingQuestion.page_number || 1}/image)\n`;
                           setEditText((prev) => (prev ? `${prev.trim()}${embedCode}` : embedCode.trim()));
                         }}
-                        className="inline-flex items-center space-x-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 transition"
+                        className="inline-flex items-center space-x-1 text-[11px] font-semibold text-emerald-300 hover:text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25 transition"
                         title="Embed the exact page diagram image inline in the question"
                       >
                         <ImageIcon className="w-3 h-3" />
@@ -1125,15 +1125,15 @@ function StagingAreaContent() {
                   rows={6}
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono"
+                  className="w-full px-3 py-2 border border-line rounded-lg text-xs font-mono"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Tip: Tables use standard Markdown syntax (<code className="text-slate-600 font-mono">| Header 1 | Header 2 |</code> followed by <code className="text-slate-600 font-mono">| --- | --- |</code>).
+                <p className="text-[10px] text-ink-faint mt-1">
+                  Tip: Tables use standard Markdown syntax (<code className="text-ink-soft font-mono">| Header 1 | Header 2 |</code> followed by <code className="text-ink-soft font-mono">| --- | --- |</code>).
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-ink-soft mb-1">
                   Topic Tags (comma-separated)
                 </label>
                 <input
@@ -1141,22 +1141,22 @@ function StagingAreaContent() {
                   value={editTopics}
                   onChange={(e) => setEditTopics(e.target.value)}
                   placeholder="e.g. Transformers, Attention Mechanism, Perplexity"
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                  className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                 />
               </div>
 
-              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+              <div className="flex justify-end space-x-2 pt-2 border-t border-line-soft">
                 <button
                   type="button"
                   onClick={() => setEditingQuestion(null)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2 border border-line rounded-lg text-xs font-medium text-ink-soft hover:bg-raised"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={updateMutation.isPending}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold"
+                  className="px-4 py-2 bg-primary hover:bg-primary-hover text-ground rounded-lg text-xs font-semibold"
                 >
                   {updateMutation.isPending ? "Saving..." : "Save Changes"}
                 </button>
@@ -1179,7 +1179,7 @@ export default function StagingAreaPage() {
   return (
     <React.Suspense
       fallback={
-        <div className="p-12 text-center text-xs text-slate-400 animate-pulse">
+        <div className="p-12 text-center text-xs text-ink-faint animate-pulse">
           Loading Staging Area...
         </div>
       }

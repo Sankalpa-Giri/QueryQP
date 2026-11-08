@@ -149,22 +149,22 @@ function QuestionBankContent() {
     <div className="space-y-6">
       {/* Title */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Question Bank Management</h1>
-        <p className="text-xs text-slate-500 mt-0.5">
+        <h1 className="text-2xl font-semibold text-ink tracking-tight">Question Bank Management</h1>
+        <p className="text-xs text-ink-muted mt-0.5">
           Curated repository of approved exam questions available for student search and practice
         </p>
       </div>
 
       {/* Filter Toolbar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-3">
+      <div className="bg-surface p-4 rounded-xl border border-line space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
           {/* Subject Filter */}
           <div>
-            <label className="block text-slate-500 font-semibold mb-1">Subject</label>
+            <label className="block text-ink-muted font-semibold mb-1">Subject</label>
             <select
               value={subjectId}
               onChange={(e) => setSubjectId(e.target.value)}
-              className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800"
+              className="w-full h-8 px-2 bg-ground border border-line rounded-lg text-ink"
             >
               <option value="">All Subjects</option>
               {subjects.map((s) => (
@@ -177,23 +177,23 @@ function QuestionBankContent() {
 
           {/* Exam Year Filter */}
           <div>
-            <label className="block text-slate-500 font-semibold mb-1">Year</label>
+            <label className="block text-ink-muted font-semibold mb-1">Year</label>
             <input
               type="number"
               placeholder="All Years"
               value={examYear}
               onChange={(e) => setExamYear(e.target.value)}
-              className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800"
+              className="w-full h-8 px-2 bg-ground border border-line rounded-lg text-ink"
             />
           </div>
 
           {/* Exam Type Filter */}
           <div>
-            <label className="block text-slate-500 font-semibold mb-1">Exam Type</label>
+            <label className="block text-ink-muted font-semibold mb-1">Exam Type</label>
             <select
               value={examType}
               onChange={(e) => setExamType(e.target.value)}
-              className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800"
+              className="w-full h-8 px-2 bg-ground border border-line rounded-lg text-ink"
             >
               <option value="">All Types</option>
               <option value="MIDSEM">Midsem</option>
@@ -203,45 +203,45 @@ function QuestionBankContent() {
 
           {/* Search Box */}
           <div>
-            <label className="block text-slate-500 font-semibold mb-1">Keywords</label>
+            <label className="block text-ink-muted font-semibold mb-1">Keywords</label>
             <input
               type="text"
               placeholder="Search approved questions..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              className="w-full h-8 px-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800"
+              className="w-full h-8 px-2 bg-ground border border-line rounded-lg text-ink"
             />
           </div>
         </div>
       </div>
 
       {/* Questions Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-6 py-3.5 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3 bg-slate-50">
+      <div className="bg-surface rounded-xl border border-line overflow-hidden">
+        <div className="px-6 py-3.5 border-b border-line-soft flex flex-wrap items-center justify-between gap-3 bg-ground">
           <div>
-            <span className="text-xs font-bold text-slate-800">
+            <span className="text-xs font-semibold text-ink">
               Approved Question Bank
             </span>
-            <span className="text-xs text-slate-500 ml-2">
+            <span className="text-xs text-ink-muted ml-2">
               ({questions.length} approved questions)
             </span>
           </div>
 
           <Link
             href="/admin/staging"
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200 transition"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-amber-300 bg-amber-500/10 hover:bg-amber-500/15 rounded-lg border border-amber-500/25 transition"
           >
-            <ClipboardCheck className="w-3.5 h-3.5 text-amber-600" />
+            <ClipboardCheck className="w-3.5 h-3.5 text-amber-400" />
             <span>Go to Staging Area</span>
           </Link>
         </div>
 
         {isLoading ? (
-          <div className="p-12 text-center text-xs text-slate-400 animate-pulse">
+          <div className="p-12 text-center text-xs text-ink-faint animate-pulse">
             Loading approved questions...
           </div>
         ) : isError ? (
-          <div className="p-8 text-center text-xs text-red-600 bg-red-50 rounded-xl m-4 space-y-2">
+          <div className="p-8 text-center text-xs text-red-400 bg-red-500/10 rounded-xl m-4 space-y-2">
             <div>Failed to load question records: {error instanceof Error ? error.message : "Error"}</div>
             <button
               onClick={() => refetch()}
@@ -251,9 +251,9 @@ function QuestionBankContent() {
             </button>
           </div>
         ) : questions.length === 0 ? (
-          <div className="p-12 text-center text-xs text-slate-400 space-y-2">
+          <div className="p-12 text-center text-xs text-ink-faint space-y-2">
             <div>No approved questions match the current filters.</div>
-            <p className="text-[11px] text-slate-400">
+            <p className="text-[11px] text-ink-faint">
               Questions must be verified and approved in the Staging Area before appearing here.
             </p>
             {(subjectId || examYear || examType || searchText) && (
@@ -264,7 +264,7 @@ function QuestionBankContent() {
                   setExamType("");
                   setSearchText("");
                 }}
-                className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-xs font-medium transition"
+                className="px-3 py-1 bg-raised hover:bg-line-strong text-ink-soft rounded text-xs font-medium transition"
               >
                 Clear all filters
               </button>
@@ -273,7 +273,7 @@ function QuestionBankContent() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="border-b border-slate-200 text-slate-500 font-semibold uppercase text-[10px] bg-slate-50">
+              <thead className="border-b border-line text-ink-muted font-semibold text-[10px] bg-ground">
                 <tr>
                   <th className="px-4 py-3">No.</th>
                   <th className="px-4 py-3">Question Text & Topics</th>
@@ -282,15 +282,15 @@ function QuestionBankContent() {
                   <th className="px-4 py-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-line-soft">
                 {questions.map((q) => {
                   const isExpanded = Boolean(expandedIds[q.id]);
                   return (
-                    <tr key={q.id} className="hover:bg-slate-50 transition">
-                      <td className="px-4 py-3 font-bold text-blue-700 whitespace-nowrap align-top">
+                    <tr key={q.id} className="hover:bg-raised transition">
+                      <td className="px-4 py-3 font-semibold text-primary whitespace-nowrap align-top">
                         {q.question_number}
                       </td>
-                      <td className="px-4 py-3 text-slate-900 max-w-md align-top">
+                      <td className="px-4 py-3 text-ink max-w-md align-top">
                         <div
                           onClick={() => toggleExpand(q.id)}
                           className="cursor-pointer leading-relaxed text-xs md:text-sm"
@@ -306,7 +306,7 @@ function QuestionBankContent() {
                             {q.topics.map((t, idx) => (
                               <span
                                 key={idx}
-                                className="px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-medium"
+                                className="px-1.5 py-0.5 bg-raised text-ink-soft rounded text-[10px] font-medium"
                               >
                                 #{t}
                               </span>
@@ -314,21 +314,21 @@ function QuestionBankContent() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-slate-600 whitespace-nowrap align-top">
-                        <div className="font-semibold text-slate-800">{q.subject_name}</div>
-                        <div className="text-[10px] text-slate-400">
+                      <td className="px-4 py-3 text-ink-soft whitespace-nowrap align-top">
+                        <div className="font-semibold text-ink">{q.subject_name}</div>
+                        <div className="text-[10px] text-ink-faint">
                           {q.exam_year} {q.exam_type} &bull; Page {q.page_number}
                         </div>
                       </td>
 
                       <td className="px-4 py-3 whitespace-nowrap align-top">
                         {q.marks !== null && q.marks !== undefined ? (
-                          <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded font-semibold text-[11px] border border-emerald-200">
+                          <span className="inline-flex items-center space-x-1 px-2 py-0.5 bg-emerald-500/10 text-emerald-300 rounded font-semibold text-[11px] border border-emerald-500/25">
                             <Award className="w-3 h-3" />
                             <span>{q.marks}M</span>
                           </span>
                         ) : (
-                          <span className="text-slate-400 text-[11px]">-</span>
+                          <span className="text-ink-faint text-[11px]">-</span>
                         )}
                       </td>
 
@@ -338,7 +338,7 @@ function QuestionBankContent() {
                           <button
                             onClick={() => setInspectQuestionId(q.id)}
                             title="Inspect Source Provenance"
-                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
+                            className="p-1.5 text-ink-muted hover:text-primary hover:bg-lift rounded-lg transition"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
                           </button>
@@ -347,7 +347,7 @@ function QuestionBankContent() {
                           <button
                             onClick={() => handleOpenEdit(q)}
                             title="Edit Question"
-                            className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition"
+                            className="p-1.5 text-ink-muted hover:text-primary hover:bg-lift rounded-lg transition"
                           >
                             <Edit className="w-3.5 h-3.5" />
                           </button>
@@ -357,7 +357,7 @@ function QuestionBankContent() {
                             <button
                               onClick={() => handleDeleteConfirm(q)}
                               title="Delete Question"
-                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-lg transition"
+                              className="p-1.5 text-ink-faint hover:text-red-400 hover:bg-lift rounded-lg transition"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -375,15 +375,15 @@ function QuestionBankContent() {
 
       {/* Edit Question Modal */}
       {editingQuestion && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl max-w-xl w-full border border-slate-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-              <h3 className="text-sm font-bold text-slate-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <div className="bg-surface rounded-xl shadow-2xl max-w-xl w-full border border-line overflow-hidden">
+            <div className="px-6 py-4 border-b border-line-soft flex items-center justify-between bg-ground">
+              <h3 className="text-sm font-semibold text-ink">
                 Edit Approved Question ({editingQuestion.question_number})
               </h3>
               <button
                 onClick={() => setEditingQuestion(null)}
-                className="text-slate-400 hover:text-slate-600"
+                className="text-ink-faint hover:text-ink-soft"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -392,7 +392,7 @@ function QuestionBankContent() {
             <form onSubmit={handleSaveEdit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1">
                     Question Number
                   </label>
                   <input
@@ -400,11 +400,11 @@ function QuestionBankContent() {
                     required
                     value={editNumber}
                     onChange={(e) => setEditNumber(e.target.value)}
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                    className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  <label className="block text-xs font-semibold text-ink-soft mb-1">
                     Marks Allocation
                   </label>
                   <input
@@ -413,14 +413,14 @@ function QuestionBankContent() {
                     value={editMarks}
                     onChange={(e) => setEditMarks(e.target.value)}
                     placeholder="e.g. 10"
-                    className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                    className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                   />
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-slate-700">
+                  <label className="text-xs font-semibold text-ink-soft">
                     Question Text (Markdown, Tables & Diagrams supported)
                   </label>
                   <div className="flex items-center space-x-1.5">
@@ -431,7 +431,7 @@ function QuestionBankContent() {
                           prev ? `${prev.trim()}\n\n${SAMPLE_TABLE_TEMPLATE.trim()}` : SAMPLE_TABLE_TEMPLATE.trim()
                         );
                       }}
-                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 transition"
+                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-primary hover:text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/30 transition"
                     >
                       <TableIcon className="w-3 h-3" />
                       <span>+ Table</span>
@@ -443,7 +443,7 @@ function QuestionBankContent() {
                           prev ? `${prev.trim()}\n\n${SAMPLE_DIAGRAM_REF_TEMPLATE.trim()}` : SAMPLE_DIAGRAM_REF_TEMPLATE.trim()
                         );
                       }}
-                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-purple-700 hover:text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 transition"
+                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-primary hover:text-primary bg-primary/10 px-2 py-0.5 rounded border border-primary/30 transition"
                       title="Insert reference note directing students to inspect diagram in the original paper"
                     >
                       <ImageIcon className="w-3 h-3" />
@@ -456,7 +456,7 @@ function QuestionBankContent() {
                           const embedCode = `\n\n![Figure: Question Diagram](/api/v1/documents/${editingQuestion.document_id}/pages/${editingQuestion.page_number || 1}/image)\n`;
                           setEditText((prev) => (prev ? `${prev.trim()}${embedCode}` : embedCode.trim()));
                         }}
-                        className="inline-flex items-center space-x-1 text-[11px] font-semibold text-emerald-700 hover:text-emerald-900 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 transition"
+                        className="inline-flex items-center space-x-1 text-[11px] font-semibold text-emerald-300 hover:text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/25 transition"
                         title="Embed the exact page diagram image inline in the question"
                       >
                         <ImageIcon className="w-3 h-3" />
@@ -470,15 +470,15 @@ function QuestionBankContent() {
                   rows={5}
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg text-xs font-mono"
+                  className="w-full px-3 py-2 border border-line rounded-lg text-xs font-mono"
                 />
-                <p className="text-[10px] text-slate-400 mt-1">
-                  Tip: Tables use standard Markdown syntax (<code className="text-slate-600 font-mono">| Header 1 | Header 2 |</code> followed by <code className="text-slate-600 font-mono">| --- | --- |</code>).
+                <p className="text-[10px] text-ink-faint mt-1">
+                  Tip: Tables use standard Markdown syntax (<code className="text-ink-soft font-mono">| Header 1 | Header 2 |</code> followed by <code className="text-ink-soft font-mono">| --- | --- |</code>).
                 </p>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-xs font-semibold text-ink-soft mb-1">
                   Topic Tags (comma-separated)
                 </label>
                 <input
@@ -486,22 +486,22 @@ function QuestionBankContent() {
                   value={editTopics}
                   onChange={(e) => setEditTopics(e.target.value)}
                   placeholder="e.g. Deadlock, CPU Scheduling"
-                  className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs"
+                  className="w-full px-3 py-1.5 border border-line rounded-lg text-xs"
                 />
               </div>
 
-              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
+              <div className="flex justify-end space-x-2 pt-2 border-t border-line-soft">
                 <button
                   type="button"
                   onClick={() => setEditingQuestion(null)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2 border border-line rounded-lg text-xs font-medium text-ink-soft hover:bg-raised"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={updateMutation.isPending}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold"
+                  className="px-4 py-2 bg-primary hover:bg-primary-hover text-ground rounded-lg text-xs font-semibold"
                 >
                   {updateMutation.isPending ? "Saving..." : "Save Changes"}
                 </button>
@@ -524,7 +524,7 @@ export default function QuestionBankAdminPage() {
   return (
     <React.Suspense
       fallback={
-        <div className="p-12 text-center text-xs text-slate-400 animate-pulse">
+        <div className="p-12 text-center text-xs text-ink-faint animate-pulse">
           Loading Question Bank...
         </div>
       }
