@@ -42,6 +42,9 @@ services:
       retries: 3
 
   worker:
+    build:
+      context: ./work/docqa-backend
+      dockerfile: Dockerfile
     image: queryqp-backend:latest
     container_name: pyq-worker
     restart: unless-stopped
