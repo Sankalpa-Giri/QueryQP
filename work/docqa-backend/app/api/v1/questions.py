@@ -323,10 +323,18 @@ def update_question_admin(
         q_time = q.updated_at.replace(tzinfo=None)
         exp_time = payload.expected_updated_at.replace(tzinfo=None)
         if (q_time - exp_time).total_seconds() > 1.0:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="This question was updated by another administrator. Please refresh the question before saving to avoid overwriting their changes.",
+            # Allow save if the recent update was just an AI action triggered by the same admin
+            last_audit = (
+                db.query(AuditLog)
+                .filter(AuditLog.entity_id == q.id, AuditLog.entity_type == "QUESTION")
+                .order_by(AuditLog.created_at.desc())
+                .first()
             )
+            if not (last_audit and last_audit.action in ("AI_REFINE", "AI_TAG_TOPICS") and last_audit.admin_id == admin["id"]):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="This question was updated by another administrator. Please refresh the question before saving to avoid overwriting their changes.",
+                )
 
     changes: dict[str, Any] = {}
     if payload.question_number is not None:

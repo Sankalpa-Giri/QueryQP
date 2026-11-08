@@ -1,6 +1,8 @@
 "use client";
 
 import React from "react";
+import katex from "katex";
+import "katex/dist/katex.min.css";
 import { Code2, Table as TableIcon, Image as ImageIcon, ExternalLink } from "lucide-react";
 import { API_BASE } from "../lib/api";
 
@@ -38,9 +40,77 @@ export type ContentBlock = TableBlock | CodeBlock | McqBlock | ImageBlock | Para
 
 export function renderInline(text: string): React.ReactNode {
   if (!text) return null;
-  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g);
+
+  // Clean any stray \text{...} wrappers around plain text words
+  const sanitized = text
+    .replace(/\\\(\s*\\text\{([a-zA-Z0-9\s\-_/]+)\}\s*\\\)/g, "$1")
+    .replace(/\\text\{([a-zA-Z0-9\s\-_/]+)\}/g, "$1");
+
+  // Split on:
+  // 1. $$ ... $$ (display math)
+  // 2. \( ... \) (inline LaTeX math)
+  // 3. $ ... $ (single-dollar inline math)
+  // 4. ` ... ` (inline code)
+  // 5. ** ... ** (bold text)
+  const regex = /(\$\$[\s\S]+?\$\$|\\\(.+?\\\)|(?<!\$)\$[^\$\n]+?\$(?!\$)|`[^`]+`|\*\*[^*]+\*\*)/g;
+  const parts = sanitized.split(regex);
+
   return parts.map((part, idx) => {
-    if (part.startsWith("`") && part.endsWith("`")) {
+    if (!part) return null;
+
+    // Display math: $$ ... $$
+    if (part.startsWith("$$") && part.endsWith("$$") && part.length >= 4) {
+      const math = part.slice(2, -2).trim();
+      try {
+        const html = katex.renderToString(math, { throwOnError: false, displayMode: true });
+        return (
+          <span
+            key={idx}
+            className="block my-2 overflow-x-auto text-center"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        );
+      } catch {
+        return <code key={idx} className="font-mono text-xs">{part}</code>;
+      }
+    }
+
+    // Inline LaTeX math: \( ... \)
+    if (part.startsWith("\\(") && part.endsWith("\\)") && part.length >= 4) {
+      const math = part.slice(2, -2).trim();
+      try {
+        const html = katex.renderToString(math, { throwOnError: false, displayMode: false });
+        return (
+          <span
+            key={idx}
+            className="inline-block px-0.5"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        );
+      } catch {
+        return <code key={idx} className="font-mono text-xs">{part}</code>;
+      }
+    }
+
+    // Inline single-dollar math: $ ... $
+    if (part.startsWith("$") && part.endsWith("$") && part.length >= 3) {
+      const math = part.slice(1, -1).trim();
+      try {
+        const html = katex.renderToString(math, { throwOnError: false, displayMode: false });
+        return (
+          <span
+            key={idx}
+            className="inline-block px-0.5"
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        );
+      } catch {
+        return <code key={idx} className="font-mono text-xs">{part}</code>;
+      }
+    }
+
+    // Inline code: ` ... `
+    if (part.startsWith("`") && part.endsWith("`") && part.length >= 2) {
       return (
         <code
           key={idx}
@@ -50,13 +120,16 @@ export function renderInline(text: string): React.ReactNode {
         </code>
       );
     }
-    if (part.startsWith("**") && part.endsWith("**")) {
+
+    // Bold text: ** ... **
+    if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
       return (
         <strong key={idx} className="font-bold text-slate-900">
           {part.slice(2, -2)}
         </strong>
       );
     }
+
     return <span key={idx}>{part}</span>;
   });
 }

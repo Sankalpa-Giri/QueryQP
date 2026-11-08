@@ -142,40 +142,73 @@ def _call_llm_json(prompt: str, system_prompt: str = "You are a specialized exam
     return None
 
 
+def sanitize_question_text(text: str) -> str:
+    """Clean hallucinated \\text{...} wrappers around plain text words and redundant formatting."""
+    if not text:
+        return ""
+    # Normalize unicode non-breaking hyphens to regular hyphens
+    text = text.replace("\u2011", "-")
+    # Strip \(\text{Word}\) -> Word
+    text = re.sub(r"\\\(\s*\\text\{([^\}]+)\}\s*\\\)", r"\1", text)
+    # Strip \text{Word} outside math delimiters -> Word
+    text = re.sub(r"\\text\{([^\}]+)\}", r"\1", text)
+    # Strip single-word plain text erroneously wrapped in math delimiters like \(BFS\) -> BFS
+    text = re.sub(r"\\\(\s*([a-zA-Z]{2,})\s*\\\)", r"\1", text)
+    return text.strip()
+
+
 def extract_questions_with_ai(
     markdown: str,
     subject_name: str | None = None,
     page_count: int = 1,
 ) -> list[ExtractedQuestion] | None:
-    """Use AI to extract authentic, beautifully structured questions with LaTeX math and auto-topic tagging."""
+    """Use AI to extract authentic, bit-wise structured questions with LaTeX math and auto-topic tagging."""
     if not is_ai_available() or not markdown or len(markdown.strip()) < 20:
         return None
 
     subj_ctx = f"Subject: {subject_name}\n" if subject_name else ""
 
     prompt = f"""You are an expert university exam question paper parser.
-{subj_ctx}Extract ALL distinct questions from the provided exam paper markdown into structured JSON.
+{subj_ctx}Extract ALL questions and subquestions from the provided exam paper markdown into structured JSON.
 
-Strict Parsing Instructions:
-1. Identify primary question units (e.g. Q1, Q2, Q3, etc.). Keep all subquestions (a), (b), (c) intact inside their parent question block.
-2. Fix all OCR typos, garbled characters, and missing symbols (e.g. transform 'O(m? + n log m)' into proper Big-O, convert broken ASCII to clean words).
-3. Format ALL mathematical formulas, Big-O notations, summations, equations, and expressions using standard LaTeX math (inline: \( ... \) or display: $$ ... $$).
-4. Format tables using standard GitHub Markdown tables (| col1 | col2 |).
-5. Extract exact allocated marks for each question as a float (e.g. 5.0, 10.0, 4.0).
-6. Auto-generate 2-4 standard academic curriculum topic tags for each question.
-7. Identify the page number where each question starts and ends based on <!-- Page N --> markers.
-8. Make sure to extract EVERY question present in the document from beginning to end (e.g. Q1, Q2, Q3, Q4, Q5, Q6, Q7, Q8, etc.). Do NOT omit any question.
+CRITICAL PARSING INSTRUCTIONS:
+1. EXTRACT BIT-WISE (SUBQUESTION LEVEL):
+   - You MUST extract every individual question subpart/bit as its OWN separate entry in the output list!
+   - For example:
+     - Question 1 with parts (a), (b), (c) MUST be extracted as three separate entries: "1(a)", "1(b)", "1(c)" (or "Q1(a)", "Q1(b)", "Q1(c)").
+     - Question 7 with parts (a), (b) MUST be extracted as "7(a)" and "7(b)".
+     - Question 8 with parts (a), (b), (c) MUST be extracted as "8(a)", "8(b)", "8(c)".
+   - If a main question has no subparts (e.g. Question 3 is just a single standalone prompt), extract it as "Q3".
+   - If there is a shared context, intro sentence, or diagram belonging to the parent question, include it in each subpart so each bit is completely self-contained.
 
-Return a JSON object with a "questions" key containing a list of questions conforming to this structure:
+2. DO NOT ANSWER THE QUESTIONS:
+   - Only extract the question prompt as given in the exam paper.
+   - NEVER generate answers, explanations, solutions, or extra examples. Keep student instructions (e.g. "Describe ... providing a suitable example") strictly as questions for the student to solve!
+
+3. CLEAN MATHEMATICAL FORMULAS (LATEX):
+   - Format mathematical formulas, variables, and Big-O notation using LaTeX math: \\( ... \\) for inline, $$ ... $$ for display.
+   - NEVER wrap plain English words or acronyms in \\text{{...}}. Plain words must remain standard English markdown.
+
+4. ACCURATE BIT-WISE MARKS:
+   - Extract the specific marks allocated to that bit as a float (e.g. 5.0, 4.0, 2.5).
+   - If only total marks for the parent question are given (e.g. Q7 is 8 marks total with 2 parts (a) and (b)), divide them proportionally (e.g. 4.0 each).
+
+5. TOPIC TAGS:
+   - Auto-generate 2-4 standard curriculum academic topic tags for each bit (e.g. ["Breadth-First Search", "Graph Traversal"]).
+
+6. PAGE NUMBERS:
+   - Identify the page number where each question bit appears based on <!-- Page N --> markers.
+
+Return a JSON object conforming to:
 {{
   "questions": [
     {{
-      "question_number": "Q1",
-      "question_text": "Complete question text with subparts (a), (b) formatted cleanly in Markdown with LaTeX equations",
-      "marks": 5.0,
-      "topics": ["Binary Search Tree", "Tree Traversal"],
-      "page_number": 1,
-      "page_end": 1
+      "question_number": "7(a)",
+      "question_text": "Exact text of subpart 7(a) with clean LaTeX math for equations",
+      "marks": 4.0,
+      "topics": ["Graph Theory", "BFS"],
+      "page_number": 2,
+      "page_end": 2
     }}
   ]
 }}
@@ -186,7 +219,7 @@ Exam Paper Markdown:
 Output JSON ONLY:"""
 
     try:
-        data = _call_llm_json(prompt)
+        data = _call_llm_json(prompt, system_prompt="You are a university exam parsing assistant. Extract questions bit-wise without answering them. Output JSON only.")
         if not data:
             return None
 
@@ -202,10 +235,8 @@ Output JSON ONLY:"""
             q_num = str(item.get("question_number", "")).strip()
             if not q_num:
                 continue
-            if not q_num.upper().startswith("Q") and q_num[0].isdigit():
-                q_num = f"Q{q_num}"
 
-            q_text = str(item.get("question_text", "")).strip()
+            q_text = sanitize_question_text(str(item.get("question_text", "")).strip())
             if len(q_text) < 5:
                 continue
 
@@ -254,35 +285,42 @@ def refine_question_with_ai(
     question_text: str,
     subject_name: str | None = None,
 ) -> dict[str, Any]:
-    """Refine a single question: fix OCR noise, convert math to clean LaTeX, format tables, and suggest topics."""
+    """Refine a single question: fix OCR noise, convert math to clean LaTeX, format tables, and suggest topics without answering."""
     subj_ctx = f"Subject: {subject_name}\n" if subject_name else ""
-    prompt = f"""You are an academic exam proofreader and LaTeX formatting expert.
+    prompt = f"""You are an academic exam typographical proofreader.
 {subj_ctx}Review the following exam question text:
-1. Fix all OCR errors, typos, and garbled symbols.
-2. Format all mathematical equations, variables, and Big-O notations in clean LaTeX math (inline: \( ... \) or display: $$ ... $$).
-3. Format tables in standard markdown table syntax.
-4. Extract the marks allocated if present.
-5. Provide 2-4 academic topic tags.
 
-Question Text:
+CRITICAL SAFETY & PROOFREADING RULES:
+1. DO NOT ANSWER, SOLVE, OR EXPLAIN THE QUESTION.
+2. DO NOT ADD NEW EXAMPLES, FORMULAS, SOLUTIONS, OR TEXT THAT WAS NOT IN THE ORIGINAL QUESTION PROMPT.
+   - If the question asks students to "Describe how the Noisy Channel Model is used for spelling correction, providing a suitable example", KEEP THAT EXACT QUESTION PROMPT FOR THE STUDENT. DO NOT WRITE THE EXAMPLE OR ANSWER YOURSELF!
+3. DO NOT wrap ordinary English words, titles, acronyms, or subject terminology in \\text{{...}} or LaTeX math mode. (For example, NEVER write \\text{{graph ADT}}, \\text{{Breadth-First Search}}, or \\(\\text{{BFS}}\\). Keep normal English words as clean plain text).
+4. ONLY use LaTeX math mode \\( ... \\) for actual mathematical variables, equations, and Big-O notation like \\(O(|V| + |E|)\\) or \\(f(x) = x^2\\).
+5. Clean up OCR typos, garbled characters, or broken line breaks.
+6. Format Markdown tables if present.
+7. Extract marks if indicated in brackets (e.g. [5], (10 marks)).
+8. Suggest 2-4 syllabus topic tags.
+
+Original Question Text:
 {question_text}
 
 Respond strictly in JSON:
 {{
-  "question_text": "Refined question text with clean LaTeX math and Markdown formatting",
+  "question_text": "Cleaned original question text ONLY (DO NOT ANSWER OR EXPAND IT)",
   "marks": 5.0,
   "topics": ["Topic 1", "Topic 2"]
 }}"""
 
-    data = _call_llm_json(prompt, system_prompt="You are an academic proofreader. Return JSON only.")
+    data = _call_llm_json(prompt, system_prompt="You are an academic typographical proofreader. DO NOT answer questions. Return JSON only.")
     if isinstance(data, dict) and data.get("question_text"):
+        cleaned_text = sanitize_question_text(str(data["question_text"]).strip())
         return {
-            "question_text": str(data["question_text"]).strip(),
+            "question_text": cleaned_text,
             "marks": data.get("marks"),
             "topics": data.get("topics", []),
         }
 
-    return {"question_text": question_text, "marks": None, "topics": []}
+    return {"question_text": sanitize_question_text(question_text), "marks": None, "topics": []}
 
 
 def auto_tag_topics_with_ai(

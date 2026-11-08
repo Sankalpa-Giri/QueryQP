@@ -15,6 +15,7 @@ import {
   ArrowRight,
   FileCheck,
   Cpu,
+  Sparkles,
 } from "lucide-react";
 
 export default function QuestionPaperUploadPage() {
@@ -106,6 +107,27 @@ export default function QuestionPaperUploadPage() {
 
       {/* Upload Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Automated AI Extraction Pipeline Banner */}
+        <div className="p-4 bg-gradient-to-r from-purple-50 via-indigo-50 to-blue-50 border border-purple-200/80 rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-xs">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <span className="font-bold text-slate-900 block text-xs">
+                Vision & Multimodal AI Structured Extraction Active
+              </span>
+              <span className="text-[11px] text-slate-500">
+                Automatically extracts questions bit-wise (e.g. 7a, 7b), standardizes LaTeX math, and auto-tags syllabus topics into Staging.
+              </span>
+            </div>
+          </div>
+          <span className="px-3 py-1 bg-white border border-purple-200 text-purple-700 font-bold rounded-xl text-xs shadow-2xs shrink-0 flex items-center gap-1.5 self-start sm:self-auto">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            AI Enabled
+          </span>
+        </div>
+
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
           <h2 className="text-sm font-bold text-slate-800 flex items-center space-x-2 border-b border-slate-100 pb-3">
             <FileCheck className="w-4 h-4 text-blue-600" />
@@ -265,8 +287,8 @@ export default function QuestionPaperUploadPage() {
                 onChange={(e) => setParserType(e.target.value as any)}
                 className="h-8 px-2.5 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-blue-500"
               >
-                <option value="pymupdf">Native PyMuPDF + OCR (Recommended)</option>
-                <option value="llamaparse">LlamaParse Cloud (API Key Required)</option>
+                <option value="pymupdf">AI Extraction + Native PyMuPDF OCR (Recommended)</option>
+                <option value="llamaparse">AI Extraction + LlamaParse Cloud</option>
               </select>
             </div>
           </div>
@@ -277,16 +299,17 @@ export default function QuestionPaperUploadPage() {
           <button
             type="submit"
             disabled={uploading || !file || !subjectId}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center space-x-2"
+            className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-300 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center space-x-2"
           >
             {uploading ? (
               <>
                 <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                <span>Uploading & Launching Extraction...</span>
+                <span>Uploading & Launching AI Extraction Pipeline...</span>
               </>
             ) : (
               <>
-                <span>Upload & Process Question Paper</span>
+                <Sparkles className="w-4 h-4" />
+                <span>Upload & Run AI Extraction Pipeline</span>
                 <ArrowRight className="w-4 h-4" />
               </>
             )}

@@ -127,8 +127,43 @@ def union_bboxes(boxes: list[list[float]]) -> list[float] | None:
 
 
 def split_inline_subquestions(questions: list[ExtractedQuestion]) -> list[ExtractedQuestion]:
-    """Preserve questions intact matching official paper structure without over-segmentation."""
-    return questions
+    """Extract bit-wise subquestions (e.g. 7(a), 7(b)) when explicit subquestion letters (a), (b) exist."""
+    bitwise: list[ExtractedQuestion] = []
+    sub_re = re.compile(r"(?:^|\n)\s*(?:\()?([a-gA-G])[\)\.](?:\s+|$)", re.MULTILINE)
+
+    for q in questions:
+        matches = list(sub_re.finditer(q.question_text))
+        if len(matches) < 2:
+            bitwise.append(q)
+            continue
+
+        lead_text = q.question_text[: matches[0].start()].strip()
+        sub_marks = (q.marks / len(matches)) if q.marks else None
+
+        for idx, m in enumerate(matches):
+            start = m.start()
+            end = matches[idx + 1].start() if idx + 1 < len(matches) else len(q.question_text)
+            sub_letter = m.group(1).lower()
+            sub_body = q.question_text[start:end].strip()
+
+            sub_text = f"{lead_text}\n\n{sub_body}".strip() if lead_text else sub_body
+            bit_num = f"{q.question_number}({sub_letter})" if not q.question_number.endswith(f"({sub_letter})") else q.question_number
+            bit_marks = extract_marks(sub_body) or sub_marks
+
+            bitwise.append(
+                ExtractedQuestion(
+                    question_number=bit_num,
+                    question_text=sub_text,
+                    normalized_text=normalize_query_text(sub_text),
+                    page_number=q.page_number,
+                    page_end=q.page_end,
+                    marks=bit_marks,
+                    bbox=q.bbox,
+                    topics=list(q.topics),
+                )
+            )
+
+    return bitwise
 
 
 def _segment_from_markdown(markdown: str) -> list[ExtractedQuestion]:
@@ -285,4 +320,4 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
             )
             auto_idx += 1
 
-    return questions
+    return split_inline_subquestions(questions)

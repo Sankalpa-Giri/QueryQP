@@ -1056,6 +1056,8 @@ function StagingAreaContent() {
                         try {
                           setIsRefiningModal(true);
                           const res = await aiRefineQuestion(editingQuestion.id);
+                          setEditingQuestion(res);
+                          setEditNumber(res.question_number);
                           setEditText(res.question_text);
                           if (res.marks !== null && res.marks !== undefined) {
                             setEditMarks(res.marks.toString());
@@ -1063,6 +1065,7 @@ function StagingAreaContent() {
                           if (res.topics && res.topics.length > 0) {
                             setEditTopics(res.topics.join(", "));
                           }
+                          queryClient.invalidateQueries({ queryKey: ["staging-questions"] });
                           showFeedback("AI auto-formatted question and KaTeX math!");
                         } catch (err: any) {
                           alert(err.message || "AI auto-format failed");
