@@ -1,5 +1,8 @@
+import io
 import logging
 import os
+import shutil
+import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -10,6 +13,22 @@ import pymupdf
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+def get_tessdata_path() -> str | None:
+    """Locate valid tessdata directory containing eng.traineddata."""
+    candidates = [
+        os.environ.get("TESSDATA_PREFIX", ""),
+        "/usr/share/tesseract-ocr/5/tessdata",
+        "/usr/share/tesseract-ocr/4.00/tessdata",
+        "/usr/share/tessdata",
+        "/usr/local/share/tessdata",
+        "/opt/homebrew/share/tessdata",
+    ]
+    for c in candidates:
+        if c and os.path.isdir(c) and os.path.exists(os.path.join(c, "eng.traineddata")):
+            return c
+    return None
 
 
 @dataclass
@@ -49,7 +68,7 @@ class BaseDocumentParser(ABC):
 
 
 class PyMuPDFProvider(BaseDocumentParser):
-    """Fast, local, offline PDF parser using PyMuPDF."""
+    """Fast, local, offline PDF parser using PyMuPDF with automated OCR for scanned documents."""
 
     def parse(self, path: Path) -> ParsedDocumentResult:
         doc = pymupdf.open(path)
@@ -61,27 +80,99 @@ class PyMuPDFProvider(BaseDocumentParser):
             w = float(page.rect.width)
             h = float(page.rect.height)
             raw_blocks = page.get_text("blocks")
-            total_chars = sum(len(str(b[4]).strip()) for b in raw_blocks if len(b) > 4)
+
+            # Extract text blocks only (block_type 0 and text is str)
+            valid_text_blocks = [
+                b for b in raw_blocks
+                if len(b) > 4 and isinstance(b[4], str) and (len(b) <= 6 or b[6] == 0)
+            ]
+            total_chars = sum(len(b[4].strip()) for b in valid_text_blocks)
+
+            # If page has very little readable text, it is likely a scanned image -> trigger OCR
             if total_chars < 30:
+                tess_dir = get_tessdata_path()
+                ocr_succeeded = False
+
+                # Strategy 1: PyMuPDF get_textpage_ocr
                 try:
-                    tp = page.get_textpage_ocr(flags=0, language="eng", dpi=300, full=True)
-                    raw_blocks = page.get_text("blocks", textpage=tp)
-                except Exception:
-                    pass
+                    kwargs: dict[str, Any] = {"flags": 0, "language": "eng", "dpi": 300, "full": True}
+                    if tess_dir:
+                        kwargs["tessdata"] = tess_dir
+                    tp = page.get_textpage_ocr(**kwargs)
+                    ocr_blocks = page.get_text("blocks", textpage=tp)
+                    ocr_valid = [
+                        b for b in ocr_blocks
+                        if len(b) > 4 and isinstance(b[4], str) and (len(b) <= 6 or b[6] == 0)
+                    ]
+                    ocr_chars = sum(len(b[4].strip()) for b in ocr_valid)
+                    if ocr_chars >= 20:
+                        raw_blocks = ocr_blocks
+                        ocr_succeeded = True
+                        logger.info("PyMuPDF OCR successfully extracted %d characters on page %d", ocr_chars, p_idx)
+                except Exception as e:
+                    logger.debug("PyMuPDF get_textpage_ocr failed on page %d: %s", p_idx, e)
+
+                # Strategy 2: Fallback to pytesseract or tesseract CLI on page pixmap
+                if not ocr_succeeded:
+                    try:
+                        import pytesseract
+                        from PIL import Image
+
+                        pix = page.get_pixmap(dpi=200)
+                        img = Image.open(io.BytesIO(pix.tobytes("png")))
+                        ocr_text = pytesseract.image_to_string(img, lang="eng").strip()
+                        if len(ocr_text) >= 20:
+                            # Construct synthetic text block spanning the printable page area
+                            raw_blocks = [
+                                (50.0, 50.0, w - 50.0, h - 50.0, ocr_text, 0, 0)
+                            ]
+                            ocr_succeeded = True
+                            logger.info("pytesseract OCR extracted %d characters on page %d", len(ocr_text), p_idx)
+                    except Exception as e:
+                        logger.debug("pytesseract OCR fallback failed on page %d: %s", p_idx, e)
+
+                # Strategy 3: Direct tesseract CLI invocation if installed
+                if not ocr_succeeded and shutil.which("tesseract"):
+                    try:
+                        pix = page.get_pixmap(dpi=200)
+                        temp_png = f"/tmp/page_{p_idx}_{os.getpid()}.png" if os.name != "nt" else f"page_{p_idx}_{os.getpid()}.png"
+                        pix.save(temp_png)
+                        proc = subprocess.run(
+                            ["tesseract", temp_png, "stdout", "-l", "eng"],
+                            capture_output=True,
+                            text=True,
+                            timeout=30,
+                        )
+                        if os.path.exists(temp_png):
+                            os.remove(temp_png)
+                        cli_text = proc.stdout.strip()
+                        if len(cli_text) >= 20:
+                            raw_blocks = [
+                                (50.0, 50.0, w - 50.0, h - 50.0, cli_text, 0, 0)
+                            ]
+                            logger.info("tesseract CLI extracted %d characters on page %d", len(cli_text), p_idx)
+                    except Exception as e:
+                        logger.debug("tesseract CLI fallback failed on page %d: %s", p_idx, e)
+
             # Human visual reading order (top-to-bottom, left-to-right)
-            sorted_blocks = sorted(raw_blocks, key=lambda b: (round(b[1] / 6) * 6, b[0]))
+            text_blocks_to_sort = [
+                b for b in raw_blocks
+                if len(b) > 4 and isinstance(b[4], str) and (len(b) <= 6 or b[6] == 0)
+            ]
+            sorted_blocks = sorted(text_blocks_to_sort, key=lambda b: (round(b[1] / 6) * 6, b[0]))
 
             page_elements: list[ParsedElement] = []
             page_md_lines: list[str] = []
 
             for b_idx, block in enumerate(sorted_blocks, start=1):
                 x0, y0, x1, y1, text, *_ = block
-                cleaned = text.strip()
+                cleaned = str(text).strip()
                 if not cleaned:
                     continue
 
-                is_header = y1 <= 0.075 * h
-                is_footer = y0 >= 0.925 * h
+                # Header/footer threshold: top 5% or bottom 5%
+                is_header = y1 <= 0.05 * h
+                is_footer = y0 >= 0.95 * h
                 el_type = "header" if is_header else ("footer" if is_footer else "paragraph")
 
                 # Bounding box with 2pt padding

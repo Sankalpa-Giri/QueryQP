@@ -31,8 +31,8 @@ def format_slide_response(slide: Slide) -> SlideResponse:
         filename=slide.filename,
         file_type=ext,
         file_size_bytes=slide.file_size_bytes or 0,
-        semester=slide.semester,
-        academic_year=slide.academic_year,
+        semester=str(slide.semester) if slide.semester is not None else None,
+        academic_year=str(slide.academic_year) if slide.academic_year is not None else None,
         download_count=slide.download_count or 0,
         file_url=f"/api/v1/slides/{slide.id}/file",
         download_url=f"/api/v1/slides/{slide.id}/download",
@@ -41,14 +41,26 @@ def format_slide_response(slide: Slide) -> SlideResponse:
     )
 
 
-def get_professors_with_slides(db: Session, subject_id: str) -> list[ProfessorSlidesResponse]:
-    """Retrieve professor names in Alphabetical order for a subject with their topic-wise slides."""
-    slides = (
-        db.query(Slide)
-        .filter(Slide.subject_id == subject_id)
-        .order_by(Slide.professor_name.asc(), Slide.topic_name.asc(), Slide.created_at.asc())
-        .all()
-    )
+def get_professors_with_slides(
+    db: Session,
+    subject_id: str | None = None,
+    search: str | None = None,
+) -> list[ProfessorSlidesResponse]:
+    """Retrieve professor names in Alphabetical order (A-Z) with their topic-wise slides."""
+    query = db.query(Slide)
+
+    if subject_id and subject_id not in ("", "all", "ALL", "None"):
+        query = query.filter(Slide.subject_id == subject_id)
+
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = query.filter(
+            Slide.professor_name.ilike(term)
+            | Slide.topic_name.ilike(term)
+            | Slide.title.ilike(term)
+        )
+
+    slides = query.order_by(Slide.professor_name.asc(), Slide.topic_name.asc(), Slide.created_at.asc()).all()
 
     prof_map: dict[str, dict] = {}
     for s in slides:
@@ -64,8 +76,8 @@ def get_professors_with_slides(db: Session, subject_id: str) -> list[ProfessorSl
         prof_map[p_name]["total"] += 1
 
     result: list[ProfessorSlidesResponse] = []
-    # Sort professors strictly in Alphabetical order
-    for p_name in sorted(prof_map.keys()):
+    # Sort professors strictly in Alphabetical order (A -> Z)
+    for p_name in sorted(prof_map.keys(), key=lambda x: x.lower()):
         data = prof_map[p_name]
         topic_groups = [
             TopicSlidesGroup(topic_name=t_name, slides=slides_list)
@@ -105,8 +117,8 @@ def init_default_slides(db: Session) -> None:
             "dsa_lecture_01_asymptotics.pdf",
             "pdf",
             1245000,
-            3,
-            2024,
+            "3rd Semester",
+            "2024-2025",
         ),
         (
             "Data Structures & Algorithms",
@@ -118,8 +130,8 @@ def init_default_slides(db: Session) -> None:
             "dsa_lecture_03_linked_lists.pdf",
             "pdf",
             1850000,
-            3,
-            2024,
+            "3rd Semester",
+            "2024-2025",
         ),
         (
             "Data Structures & Algorithms",
@@ -131,8 +143,8 @@ def init_default_slides(db: Session) -> None:
             "dsa_lecture_07_avl_trees.pdf",
             "pdf",
             2140000,
-            3,
-            2024,
+            "3rd Semester",
+            "2024-2025",
         ),
         (
             "Data Structures & Algorithms",
@@ -144,8 +156,8 @@ def init_default_slides(db: Session) -> None:
             "dsa_lecture_11_graphs.pdf",
             "pdf",
             1670000,
-            3,
-            2024,
+            "3rd Semester",
+            "2024-2025",
         ),
         (
             "Data Structures & Algorithms",
@@ -157,8 +169,8 @@ def init_default_slides(db: Session) -> None:
             "dsa_lecture_15_dynamic_programming.pdf",
             "pdf",
             1920000,
-            3,
-            2024,
+            "3rd Semester",
+            "2024-2025",
         ),
         # Operating Systems
         (
@@ -171,8 +183,8 @@ def init_default_slides(db: Session) -> None:
             "os_lecture_02_process_mgmt.pdf",
             "pdf",
             1430000,
-            4,
-            2024,
+            "4th Semester",
+            "2024-2025",
         ),
         (
             "Operating Systems",
@@ -184,8 +196,8 @@ def init_default_slides(db: Session) -> None:
             "os_lecture_06_semaphores_mutex.pdf",
             "pdf",
             2310000,
-            4,
-            2024,
+            "4th Semester",
+            "2024-2025",
         ),
         (
             "Operating Systems",
@@ -197,8 +209,8 @@ def init_default_slides(db: Session) -> None:
             "os_lecture_08_bankers_algorithm.pdf",
             "pdf",
             1780000,
-            4,
-            2024,
+            "4th Semester",
+            "2024-2025",
         ),
         (
             "Operating Systems",
@@ -210,8 +222,8 @@ def init_default_slides(db: Session) -> None:
             "os_lecture_12_virtual_memory.pdf",
             "pdf",
             2050000,
-            4,
-            2024,
+            "4th Semester",
+            "2024-2025",
         ),
         # Database Management Systems
         (
@@ -224,8 +236,8 @@ def init_default_slides(db: Session) -> None:
             "dbms_lecture_03_sql_joins.pdf",
             "pdf",
             1590000,
-            4,
-            2024,
+            "4th Semester",
+            "2024-2025",
         ),
         (
             "Database Management Systems",
@@ -237,8 +249,8 @@ def init_default_slides(db: Session) -> None:
             "dbms_lecture_07_normalization.pdf",
             "pdf",
             2230000,
-            4,
-            2024,
+            "4th Semester",
+            "2024-2025",
         ),
         (
             "Database Management Systems",
@@ -250,8 +262,8 @@ def init_default_slides(db: Session) -> None:
             "dbms_lecture_10_acid_transactions.pdf",
             "pdf",
             1810000,
-            4,
-            2024,
+            "4th Semester",
+            "2024-2025",
         ),
         # Computer Networks
         (
@@ -264,8 +276,8 @@ def init_default_slides(db: Session) -> None:
             "cn_lecture_04_error_detection_crc.pdf",
             "pdf",
             1640000,
-            5,
-            2024,
+            "5th Semester",
+            "2024-2025",
         ),
         (
             "Computer Networks",
@@ -277,8 +289,8 @@ def init_default_slides(db: Session) -> None:
             "cn_lecture_09_routing_algorithms.pdf",
             "pdf",
             2420000,
-            5,
-            2024,
+            "5th Semester",
+            "2024-2025",
         ),
         (
             "Computer Networks",
@@ -290,15 +302,14 @@ def init_default_slides(db: Session) -> None:
             "cn_lecture_14_tcp_congestion.pdf",
             "pdf",
             2190000,
-            5,
-            2024,
+            "5th Semester",
+            "2024-2025",
         ),
     ]
 
     for subj_name, prof_name, prof_title, topic_name, title, desc, filename, ftype, fsize, sem, year in seed_data:
         subj = subj_map.get(subj_name.lower())
         if not subj:
-            # Fallback to first available subject
             subj = subjects[0]
 
         slide_id = str(uuid.uuid4())
@@ -307,8 +318,14 @@ def init_default_slides(db: Session) -> None:
         file_path = storage_service.slides_dir / f"{slide_id}.{ftype}"
         if not file_path.exists():
             with open(file_path, "wb") as f:
-                # Write a minimal dummy PDF content if pdf
-                f.write(b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\nxref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000052 00000 n \n0000000108 00000 n \ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n185\n%%EOF")
+                f.write(
+                    b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n"
+                    b"2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n"
+                    b"3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\n"
+                    b"xref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n"
+                    b"0000000052 00000 n \n0000000108 00000 n \n"
+                    b"trailer<</Size 4/Root 1 0 R>>\nstartxref\n185\n%%EOF"
+                )
 
         slide = Slide(
             id=slide_id,

@@ -20,7 +20,6 @@ from app.services.subject_service import assign_question_topics
 logger = logging.getLogger(__name__)
 
 
-
 def run_document_pipeline_sync(document_id: str, parser_type: str | None = None) -> bool:
     """Synchronous execution of the document parsing, question segmentation, and indexing pipeline."""
     db = SessionLocal()
@@ -56,6 +55,7 @@ def _execute_document_pipeline(document_id: str, db: Session, parser_type: str |
 
     try:
         # ================= STAGE 1: PARSE =================
+        logger.info("Starting STAGE 1 (PARSE) for document %s (%s)", doc.id, doc.filename)
         job.stage = ProcessingStage.PARSE
         job.status = StageStatus.RUNNING
         job.progress = 0.2
@@ -75,13 +75,22 @@ def _execute_document_pipeline(document_id: str, db: Session, parser_type: str |
         job.progress = 0.5
         db.commit()
 
+        logger.info(
+            "Parsed document %s: pages=%d, markdown_chars=%d",
+            doc.id,
+            parsed_result.page_count,
+            len(parsed_result.markdown),
+        )
+
         # ================= STAGE 2: SEGMENT QUESTIONS =================
+        logger.info("Starting STAGE 2 (SEGMENT) for document %s", doc.id)
         job.stage = ProcessingStage.SEGMENT
         job.status = StageStatus.RUNNING
         doc.extraction_status = StageStatus.RUNNING
         db.commit()
 
         extracted_questions = segment_questions_from_parsed(parsed_result)
+        logger.info("Segmenter extracted %d questions for document %s", len(extracted_questions), doc.id)
 
         # Idempotent cleanup: Remove existing questions and associations if reprocessing
         existing_q_ids = [q[0] for q in db.query(Question.id).filter(Question.document_id == doc.id).all()]
@@ -113,34 +122,42 @@ def _execute_document_pipeline(document_id: str, db: Session, parser_type: str |
 
         # Classify and link questions to subject topic taxonomy
         for q_row in created_questions:
-            assign_question_topics(db, q_row)
+            try:
+                assign_question_topics(db, q_row)
+            except Exception as e:
+                logger.warning("Topic assignment failed for question %s: %s", q_row.id, e)
 
         doc.extraction_status = StageStatus.COMPLETED
         job.progress = 0.8
         db.commit()
 
         # ================= STAGE 3: EMBED & INDEX =================
+        logger.info("Starting STAGE 3 (INDEX) for document %s with %d questions", doc.id, len(created_questions))
         job.stage = ProcessingStage.INDEX
         job.status = StageStatus.RUNNING
         doc.indexing_status = StageStatus.RUNNING
         db.commit()
 
         if created_questions:
-            q_texts = [q.question_text for q in created_questions]
-            embeddings = embed_texts(q_texts)
-            for q, emb in zip(created_questions, embeddings):
-                q.embedding_json = emb
+            try:
+                q_texts = [q.question_text for q in created_questions]
+                embeddings = embed_texts(q_texts)
+                for q, emb in zip(created_questions, embeddings):
+                    q.embedding_json = emb
+            except Exception as e:
+                logger.warning("Embedding generation failed for document %s: %s", doc.id, e)
 
         doc.indexing_status = StageStatus.COMPLETED
         doc.publication_status = PublicationStatus.DRAFT
         doc.error_message = None
-
 
         job.stage = ProcessingStage.INDEX
         job.status = StageStatus.COMPLETED
         job.progress = 1.0
         job.error_message = None
         db.commit()
+
+        logger.info("Document pipeline completed successfully for %s (%d questions)", doc.id, len(created_questions))
 
         # Update batch counters
         _update_batch_progress(doc.batch_id, db)
@@ -195,4 +212,3 @@ def _update_batch_progress(batch_id: str, db: Session) -> None:
         batch.status = BatchStatus.PROCESSING
 
     db.commit()
-

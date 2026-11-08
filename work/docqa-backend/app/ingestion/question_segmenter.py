@@ -3,17 +3,24 @@ from dataclasses import dataclass, field
 
 from app.ingestion.providers import ParsedDocumentResult, ParsedElement, ParsedPage
 
-# Section headers (e.g. SECTION-A, Section B, Part A)
-SECTION_REGEX = re.compile(r"^(?:SECTION|PART)\s*[-–—:]?\s*([A-Z0-9]+)", re.IGNORECASE)
+# Section headers (e.g. SECTION-A, Section B, Part A, GROUP-1)
+SECTION_REGEX = re.compile(r"^(?:SECTION|PART|GROUP)\s*[-–—:]?\s*([A-Z0-9]+)", re.IGNORECASE)
 
 # Main question number starters e.g.:
-# "1.", "Q1", "Question 1", "2. (a)", "2. (a\", "3 (b)", "4", "5.", "Q.1", "1(a)"
+# "1.", "1)", "1:", "1 -", "(1)", "[1]", "Q1", "Q.1", "Question 1", "Question - 1", "Problem 1", "1. (a)", "1(a)"
 MAIN_Q_REGEX = re.compile(
-    r"^(?:[\*\-\+]\s*)?(?:(?:Question|Q)\.?\s*(\d{1,2})(?:\s*[\.\:\-\)]\s*|\s*)(?:\(?([a-z]|[ivx]+)[\)\]\\\/\:]|\(([a-z]|[ivx]+)\)?)?|(\d{1,2})\s*[\.\:\-\)](?:\s*(?:\(([a-z]|[ivx]+)[\)\]\\\/\:]?|\[([a-z]|[ivx]+)\]|([a-z]|[ivx]+)[\)\]\\\/\:]))?|(\d{1,2})\s*[\(\[]([a-z]|[ivx]+)[\)\]\\\/\:]?|(\b[1-9]\b)\s*$)",
+    r"^(?:[\*\-\+]\s*)?(?:"
+    r"(?:Question|Q|Problem|Prob)\.?\s*(?:No\.?\s*|[-–—]\s*)?(\d{1,2})(?:\s*[\.\:\-\)]\s*|\s*)(?:\(?([a-z]|[ivx]+)[\)\]\\\/\:]|\(([a-z]|[ivx]+)\)?)?"
+    r"|(\d{1,2})\s*[\.\:\-\)](?:\s*(?:\(([a-z]|[ivx]+)[\)\]\\\/\:]?|\[([a-z]|[ivx]+)\]|([a-z]|[ivx]+)[\)\]\\\/\:]))?"
+    r"|[\(\[]\s*(\d{1,2})\s*[\)\]](?:\s*[\.\:\-]?\s*(?:\(([a-z]|[ivx]+)\)|([a-z]|[ivx]+)[\)\]]))?"
+    r"|(\d{1,2})\s*[\(\[]([a-z]|[ivx]+)[\)\]\\\/\:]?"
+    r"|(?:\b([IVXLCDM]{1,4})\b)\s*[\.\:\-\)]"
+    r"|(\b[1-9]\b)\s*$"
+    r")",
     re.IGNORECASE,
 )
 
-# Subquestion bullet starters e.g. "(a)", "(b)", "@)", "(0", "O)", "ri)", "a)", "b)", "(i)", "(ii)", "(a\", "a\"
+# Subquestion bullet starters e.g. "(a)", "(b)", "@)", "(0", "O)", "ri)", "a)", "b)", "(i)", "(ii)", "[a]"
 SUB_Q_REGEX = re.compile(
     r"^(?:[\*\-\+]\s*)?(?:\(([a-z]|[ivx]+)[\)\\\/\:]|([a-z]|[ivx]+)\s*[\)\\\/\:]|(@\))|(\(0\b)|(O\))|(o\))|(ri\))|\[([a-z]|[ivx]+)\])",
     re.IGNORECASE,
@@ -34,7 +41,7 @@ MATRIX_ROW_REGEX = re.compile(r"^([A-Z]{2,4}\b|[01IUlo\s]+$)")
 
 # Question start regex for simple/markdown checks
 QUESTION_START_REGEX = re.compile(
-    r"^(?:(?:Q(?:uestion)?\.?\s*(\d+[a-z]?|\b[A-Z]\b))|(\d{1,2}\s*[\.\:\-\)]|\d{1,2}\s*\([a-z]\))|([a-z]\s*[\)\:])|(\([a-z0-9]\))|(Part\s+[A-Z]))",
+    r"^(?:(?:Q(?:uestion)?\.?\s*(?:No\.?\s*)?(\d+[a-z]?|\b[A-Z]\b))|(\d{1,2}\s*[\.\:\-\)]|\d{1,2}\s*\([a-z]\))|([a-z]\s*[\)\:])|(\([a-z0-9]\))|(Part\s+[A-Z]))",
     re.IGNORECASE,
 )
 
@@ -43,6 +50,19 @@ MARKS_REGEX = re.compile(
     r"(?:\[|\()(?:\s*Marks?\s*[:\=]?\s*)?(\d{1,2}(?:\.\d)?)\s*(?:marks?|pts?|points?)?\s*(?:\]|\))",
     re.IGNORECASE,
 )
+
+ROMAN_MAP = {
+    "i": 1, "ii": 2, "iii": 3, "iv": 4, "v": 5, "vi": 6, "vii": 7, "viii": 8, "ix": 9, "x": 10,
+    "xi": 11, "xii": 12, "xiii": 13, "xiv": 14, "xv": 15, "xvi": 16,
+}
+
+QUESTION_VERBS = [
+    "explain", "describe", "what is", "what are", "prove", "write", "calculate", "define",
+    "differentiate", "distinguish", "state", "show", "discuss", "illustrate", "design",
+    "find", "compare", "draw", "derive", "give", "list", "convert", "evaluate", "implement",
+    "construct", "elaborate", "analyze", "solve", "how does", "why is", "short notes",
+    "briefly", "formulate", "examine", "determine", "sketch",
+]
 
 
 @dataclass
@@ -91,11 +111,7 @@ def clean_ocr_sub_bullet(token: str, prev_letter: str | None = None) -> str:
 
 
 def split_inline_subquestions(questions: list[ExtractedQuestion]) -> list[ExtractedQuestion]:
-    """Post-processing pass: If any segmented question contains embedded subquestion bullets
-
-    (e.g., (b), (c), or (ii) inside a single question block), split it into separate
-    ExtractedQuestion records so sub-bits never get combined.
-    """
+    """Split embedded subquestion bullets e.g. (b), (c) inside a single question block."""
     results: list[ExtractedQuestion] = []
     for q in questions:
         matches = list(INLINE_BIT_REGEX.finditer(q.question_text))
@@ -190,29 +206,41 @@ def union_bboxes(boxes: list[list[float]]) -> list[float] | None:
 
 
 def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[ExtractedQuestion]:
-    """Segment parsed document pages and elements into individual question and subquestion units."""
-    # Flatten body elements across pages with page context
+    """Segment parsed document pages and elements into individual question units with guaranteed extraction."""
+    # 1. Flatten body elements across pages
     body_elements: list[tuple[int, ParsedElement]] = []
+    all_elements: list[tuple[int, ParsedElement]] = []
+
     for page in result.pages:
         for el in page.elements:
+            all_elements.append((page.page_number, el))
             if el.type not in ("header", "footer"):
                 body_elements.append((page.page_number, el))
 
-    if not body_elements:
-        # Fallback to splitting raw markdown if no structural elements
+    # If header/footer classification excluded everything, use all elements
+    elements_to_use = body_elements if body_elements else all_elements
+
+    if not elements_to_use:
         return _segment_from_markdown(result.markdown)
 
-    # Collect all non-header non-footer lines with page and bounding box
+    # 2. Collect lines
     raw_lines: list[dict] = []
-    for p_num, el in body_elements:
-        for l in el.text.split("\n"):
+    for p_num, el in elements_to_use:
+        for l in str(el.text).split("\n"):
             s = l.strip()
             if not s:
                 continue
-            # Skip university exam banner metadata
-            if any(hdr in s for hdr in ["AUTUMN END SEMESTER", "KIIT-DU", "Setwster:", "Progromae:", "Bnich:", "Qn. Set Code", "Full Marks:", "Time:"]):
+            # Skip university exam banner metadata and generic instructions
+            if any(hdr in s.lower() for hdr in [
+                "autumn end semester", "spring end semester", "kiit-du", "full marks:",
+                "time:", "qn. set code", "branch:", "programme:", "semester:"
+            ]):
                 continue
-            if any(instr in s for instr in ["Attempt any", "Anspe?", "Question paper consisb", "Candidates are required", "and all ootts", "Section A is compulsory"]):
+            if any(instr in s.lower() for instr in [
+                "attempt any", "answer all", "answer any", "question paper consists",
+                "candidates are required", "all questions carry", "instructions to candidates",
+                "instructions:", "time allowed", "maximum marks"
+            ]):
                 continue
             raw_lines.append({
                 "text": s,
@@ -246,6 +274,11 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
         full_text = " ".join(filtered_lines)
         full_text = re.sub(r"\s+", " ", full_text).strip()
         full_text = full_text.strip(".- \t")
+
+        if len(full_text) < 5:
+            current_lines = []
+            current_boxes = []
+            return
 
         # Formulate Question ID e.g. Q1(a) or Q2
         if current_main_num is not None:
@@ -314,42 +347,35 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
         if main_match:
             groups = [g for g in main_match.groups() if g is not None]
             q_num_str = next((g for g in groups if g.isdigit()), None)
-            sub_let = next((g for g in groups if not g.isdigit() and len(g) <= 4), None)
+            roman_str = next((g for g in groups if g.lower() in ROMAN_MAP), None)
+            sub_let = next((g for g in groups if not g.isdigit() and g.lower() not in ROMAN_MAP and len(g) <= 4), None)
 
+            val = None
             if q_num_str and q_num_str.isdigit():
                 val = int(q_num_str)
-                # Valid next main question is 1, or sequential (current + 1), or current (with subquestion)
-                if current_main_num is None or val >= 1:
-                    flush()
-                    current_main_num = val
-                    current_sub_letter = sub_let.lower() if sub_let else None
-                    start_page = p_num
-                    end_page = p_num
+            elif roman_str:
+                val = ROMAN_MAP[roman_str.lower()]
 
-                    rem = text[main_match.end():].strip()
-                    if not current_sub_letter and rem:
-                        sub_rem_match = SUB_Q_REGEX.match(rem)
-                        if sub_rem_match:
-                            current_sub_letter = clean_ocr_sub_bullet(sub_rem_match.group(0))
-                            rem = rem[sub_rem_match.end():].strip()
+            if val is not None and val >= 1:
+                flush()
+                current_main_num = val
+                auto_q_idx = max(auto_q_idx, val + 1)
+                current_sub_letter = sub_let.lower() if sub_let else None
+                start_page = p_num
+                end_page = p_num
 
-                    if rem:
-                        current_lines.append(rem)
-                    current_boxes.append(bbox)
-                    idx += 1
-                    continue
+                rem = text[main_match.end():].strip()
+                if not current_sub_letter and rem:
+                    sub_rem_match = SUB_Q_REGEX.match(rem)
+                    if sub_rem_match:
+                        current_sub_letter = clean_ocr_sub_bullet(sub_rem_match.group(0))
+                        rem = rem[sub_rem_match.end():].strip()
 
-        # Contextual OCR artifact detection:
-        is_at_bullet = text.startswith("@)")
-        is_o_bullet = text.startswith("O)") or text.startswith("o)")
-
-        if is_at_bullet and current_sub_letter and ord(current_sub_letter) >= ord("c"):
-            # Inside question past (b), e.g. Q1(i) with (A), @), (C), (D) -> Treat as MCQ option (B)
-            current_lines.append(text)
-            current_boxes.append(bbox)
-            end_page = p_num
-            idx += 1
-            continue
+                if rem:
+                    current_lines.append(rem)
+                current_boxes.append(bbox)
+                idx += 1
+                continue
 
         # Subquestion starter detection
         is_sub = False
@@ -357,12 +383,6 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
         if sub_match and not CODE_OR_ASSIGN_REGEX.match(text):
             is_sub = True
             detected_letter = clean_ocr_sub_bullet(sub_match.group(0), prev_letter=current_sub_letter)
-        elif is_o_bullet and current_sub_letter == "a":
-            is_sub = True
-            detected_letter = "b"
-        elif is_o_bullet and current_sub_letter == "g":
-            is_sub = True
-            detected_letter = "h"
 
         if is_sub and detected_letter:
             flush()
@@ -383,13 +403,6 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
             idx += 1
             continue
 
-        # Fallback preamble
-        if "answer the following" in text.lower():
-            if current_main_num is None:
-                current_main_num = 1
-            idx += 1
-            continue
-
         # Multiple-choice option (A), (B), (C), (D)
         if MCQ_OPTION_REGEX.match(text):
             if current_main_num is not None:
@@ -399,6 +412,23 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
             idx += 1
             continue
 
+        # Question verb detection: starts with a verb and previous line ended cleanly
+        starts_with_verb = any(text.lower().startswith(kw) for kw in QUESTION_VERBS)
+        if starts_with_verb:
+            prev_ended = not current_lines or any(
+                current_lines[-1].strip().endswith(punct) for punct in [".", "?", ")", "]", ";", ":"]
+            )
+            if current_main_num is None or prev_ended:
+                flush()
+                current_main_num = auto_q_idx
+                auto_q_idx += 1
+                current_lines.append(text)
+                current_boxes.append(bbox)
+                start_page = p_num
+                end_page = p_num
+                idx += 1
+                continue
+
         # Regular question body line
         if current_main_num is not None:
             current_lines.append(text)
@@ -407,27 +437,29 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
             if line_marks and not current_marks:
                 current_marks = line_marks
         else:
-            # If line has question content before explicit number
-            if any(kw in text.lower() for kw in ["explain", "describe", "what is", "prove", "write", "calculate", "define", "differentiate", "state", "show", "discuss", "illustrate", "design", "find", "compare", "draw", "derive", "give", "list", "convert", "evaluate", "implement", "construct"]):
-                current_main_num = auto_q_idx
-                current_lines.append(text)
-                current_boxes.append(bbox)
-                start_page = p_num
-                end_page = p_num
+            current_lines.append(text)
+            current_boxes.append(bbox)
+            start_page = p_num
+            end_page = p_num
 
         idx += 1
 
     flush()
+
+    # Fallback 1: segment from Markdown if no questions extracted
     if not questions:
         if result.markdown and result.markdown.strip():
             questions = _segment_from_markdown(result.markdown)
 
+    # Fallback 2: segment directly from structural elements (length threshold 12 chars)
     if not questions and result.pages:
         auto_idx = 1
         for page in result.pages:
             for el in page.elements:
-                clean_t = re.sub(r"\s+", " ", el.text).strip()
-                if len(clean_t) >= 20 and not any(h in clean_t.lower() for h in ["page", "full marks", "time:", "semester", "kiit", "branch:"]):
+                clean_t = re.sub(r"\s+", " ", str(el.text)).strip()
+                if len(clean_t) >= 12 and not any(h in clean_t.lower() for h in [
+                    "page", "full marks", "time:", "semester", "kiit", "branch:", "programme:"
+                ]):
                     questions.append(
                         ExtractedQuestion(
                             question_number=f"Q{auto_idx}",
@@ -440,6 +472,25 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
                         )
                     )
                     auto_idx += 1
+
+    # Fallback 3: segment from raw lines if still empty
+    if not questions and raw_lines:
+        auto_idx = 1
+        for item in raw_lines:
+            t = item["text"].strip()
+            if len(t) >= 15:
+                questions.append(
+                    ExtractedQuestion(
+                        question_number=f"Q{auto_idx}",
+                        question_text=t,
+                        normalized_text=normalize_query_text(t),
+                        page_number=item["page"],
+                        page_end=item["page"],
+                        marks=extract_marks(t) or 5.0,
+                        bbox=item["bbox"],
+                    )
+                )
+                auto_idx += 1
 
     return split_inline_subquestions(questions)
 
@@ -517,7 +568,9 @@ def _segment_from_markdown(markdown: str) -> list[ExtractedQuestion]:
         auto_idx = 1
         for b in blocks:
             clean_t = re.sub(r"\s+", " ", b).strip()
-            if len(clean_t) >= 20 and not any(h in clean_t.lower() for h in ["page", "full marks", "time:", "semester", "kiit", "branch:"]):
+            if len(clean_t) >= 12 and not any(h in clean_t.lower() for h in [
+                "page", "full marks", "time:", "semester", "kiit", "branch:", "programme:"
+            ]):
                 questions.append(
                     ExtractedQuestion(
                         question_number=f"Q{auto_idx}",

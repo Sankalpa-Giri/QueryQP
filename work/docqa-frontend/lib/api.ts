@@ -841,17 +841,21 @@ export interface SlideItem {
   id: string;
   subject_id?: string | null;
   subject_name?: string | null;
+  subject_code?: string | null;
   professor_name: string;
   professor_title?: string | null;
   topic_name: string;
   title: string;
   description?: string | null;
+  filename?: string | null;
   storage_key?: string | null;
   file_type: string;
   file_size_bytes?: number | null;
   semester?: string | null;
-  academic_year?: number | null;
+  academic_year?: string | number | null;
   download_count: number;
+  file_url?: string;
+  download_url?: string;
   created_at?: string | null;
   updated_at?: string | null;
 }
@@ -878,10 +882,21 @@ export async function fetchProfessorSlides(
   search?: string
 ): Promise<ProfessorsBySubjectResponse> {
   const params = new URLSearchParams();
-  if (subjectId) params.append("subject_id", subjectId);
-  if (search) params.append("search", search);
+  if (subjectId && subjectId !== "all" && subjectId !== "ALL" && subjectId !== "None") {
+    params.append("subject_id", subjectId);
+  }
+  if (search && search.trim()) {
+    params.append("search", search.trim());
+  }
   const res = await fetch(`${API_V1}/slides/professors?${params.toString()}`);
-  return handleResponse<ProfessorsBySubjectResponse>(res);
+  const data = await handleResponse<any>(res);
+  if (Array.isArray(data)) {
+    return { subject_id: subjectId, professors: data };
+  }
+  if (data && Array.isArray(data.professors)) {
+    return data;
+  }
+  return { subject_id: subjectId, professors: [] };
 }
 
 export async function fetchPublicSlides(filters?: {
@@ -891,12 +906,13 @@ export async function fetchPublicSlides(filters?: {
   search?: string;
 }): Promise<SlideItem[]> {
   const params = new URLSearchParams();
-  if (filters?.subject_id) params.append("subject_id", filters.subject_id);
+  if (filters?.subject_id && filters.subject_id !== "all") params.append("subject_id", filters.subject_id);
   if (filters?.professor_name) params.append("professor_name", filters.professor_name);
   if (filters?.topic_name) params.append("topic_name", filters.topic_name);
   if (filters?.search) params.append("search", filters.search);
   const res = await fetch(`${API_V1}/slides?${params.toString()}`);
-  return handleResponse<SlideItem[]>(res);
+  const data = await handleResponse<any>(res);
+  return Array.isArray(data) ? data : data?.items || [];
 }
 
 export function getSlideFileUrl(slideId: string): string {
@@ -915,7 +931,7 @@ export async function fetchAdminSlides(filters?: {
   limit?: number;
 }): Promise<{ items: SlideItem[]; total: number; page: number; pages: number }> {
   const params = new URLSearchParams();
-  if (filters?.subject_id) params.append("subject_id", filters.subject_id);
+  if (filters?.subject_id && filters.subject_id !== "all") params.append("subject_id", filters.subject_id);
   if (filters?.professor_name) params.append("professor_name", filters.professor_name);
   if (filters?.search) params.append("search", filters.search);
   if (filters?.page) params.append("page", filters.page.toString());
@@ -923,7 +939,14 @@ export async function fetchAdminSlides(filters?: {
   const res = await fetch(`${API_V1}/admin/slides?${params.toString()}`, {
     headers: getAuthHeaders(),
   });
-  return handleResponse<{ items: SlideItem[]; total: number; page: number; pages: number }>(res);
+  const data = await handleResponse<any>(res);
+  if (Array.isArray(data)) {
+    return { items: data, total: data.length, page: 1, pages: 1 };
+  }
+  if (data && Array.isArray(data.items)) {
+    return data;
+  }
+  return { items: [], total: 0, page: 1, pages: 1 };
 }
 
 export async function uploadSlideAdmin(formData: FormData): Promise<SlideItem> {

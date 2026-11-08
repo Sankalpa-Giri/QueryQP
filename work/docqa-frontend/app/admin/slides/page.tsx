@@ -80,7 +80,7 @@ export default function AdminSlidesPage() {
       }),
   });
 
-  const slides = slidesData?.items || [];
+  const slides = Array.isArray(slidesData) ? slidesData : (slidesData?.items || []);
 
   const resetForm = () => {
     setFormSubjectId("");
@@ -129,7 +129,7 @@ export default function AdminSlidesPage() {
           title: formTitle.trim(),
           description: formDescription.trim() || undefined,
           semester: formSemester.trim() || undefined,
-          academic_year: formAcademicYear ? parseInt(formAcademicYear, 10) : undefined,
+          academic_year: formAcademicYear.trim() || undefined,
         });
       } else {
         if (!selectedFile) {
@@ -147,14 +147,15 @@ export default function AdminSlidesPage() {
 
         const formData = new FormData();
         formData.append("file", selectedFile);
-        if (formSubjectId) formData.append("subject_id", formSubjectId);
+        const effectiveSubjId = formSubjectId || (subjects.length > 0 ? subjects[0].id : "");
+        if (effectiveSubjId) formData.append("subject_id", effectiveSubjId);
         formData.append("professor_name", formProfessorName.trim());
         if (formProfessorTitle.trim()) formData.append("professor_title", formProfessorTitle.trim());
         formData.append("topic_name", formTopicName.trim());
         formData.append("title", formTitle.trim());
         if (formDescription.trim()) formData.append("description", formDescription.trim());
         if (formSemester.trim()) formData.append("semester", formSemester.trim());
-        if (formAcademicYear) formData.append("academic_year", formAcademicYear);
+        if (formAcademicYear.trim()) formData.append("academic_year", formAcademicYear.trim());
 
         return uploadSlideAdmin(formData);
       }

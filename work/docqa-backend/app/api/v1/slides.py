@@ -1,3 +1,4 @@
+import math
 import os
 import uuid
 from pathlib import Path
@@ -21,7 +22,9 @@ from app.db.session import get_db
 from app.models.slide import Slide
 from app.models.subject import Subject
 from app.schemas.slide import (
+    AdminSlidesListResponse,
     ProfessorSlidesResponse,
+    ProfessorsBySubjectResponse,
     SlideResponse,
     SlideUpdate,
 )
@@ -47,37 +50,41 @@ def list_public_slides(
     subject_id: str | None = Query(None, description="Filter by subject ID"),
     professor_name: str | None = Query(None, description="Filter by professor name"),
     topic_name: str | None = Query(None, description="Filter by topic name"),
+    search: str | None = Query(None, description="General search filter"),
     db: Session = Depends(get_db),
 ) -> list[SlideResponse]:
-    """List lecture slides filtered by subject, professor, or topic."""
+    """List lecture slides filtered by subject, professor, topic, or search term."""
     query = db.query(Slide)
-    if subject_id and subject_id not in ("", "all", "ALL"):
+    if subject_id and subject_id not in ("", "all", "ALL", "None"):
         query = query.filter(Slide.subject_id == subject_id)
     if professor_name:
         query = query.filter(Slide.professor_name.ilike(f"%{professor_name.strip()}%"))
     if topic_name:
         query = query.filter(Slide.topic_name.ilike(f"%{topic_name.strip()}%"))
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = query.filter(
+            Slide.professor_name.ilike(term)
+            | Slide.topic_name.ilike(term)
+            | Slide.title.ilike(term)
+        )
 
     slides = query.order_by(Slide.professor_name.asc(), Slide.topic_name.asc(), Slide.created_at.desc()).all()
     return [format_slide_response(s) for s in slides]
 
 
-@public_router.get("/professors", response_model=list[ProfessorSlidesResponse])
+@public_router.get("/professors", response_model=ProfessorsBySubjectResponse)
 def get_professors_by_subject(
-    subject_id: str = Query(..., description="Subject ID to fetch professors and slides for"),
+    subject_id: str | None = Query(None, description="Optional subject ID filter"),
+    search: str | None = Query(None, description="Search by professor, topic, or slide title"),
     db: Session = Depends(get_db),
-) -> list[ProfessorSlidesResponse]:
-    """Retrieve all university professors for a subject in Alphabetical order,
-
-    with their topic-wise lecture slides and preview details.
-    """
-    subject = db.query(Subject).filter(Subject.id == subject_id).first()
-    if not subject:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Subject with ID '{subject_id}' not found.",
-        )
-    return get_professors_with_slides(db, subject_id)
+) -> ProfessorsBySubjectResponse:
+    """Retrieve all university professors in Alphabetical order (A-Z) with topic-wise slides."""
+    profs = get_professors_with_slides(db, subject_id=subject_id, search=search)
+    return ProfessorsBySubjectResponse(
+        subject_id=subject_id,
+        professors=profs,
+    )
 
 
 @public_router.get("/{slide_id}", response_model=SlideResponse)
@@ -90,8 +97,9 @@ def get_slide_detail(slide_id: str, db: Session = Depends(get_db)) -> SlideRespo
 
 
 @public_router.get("/{slide_id}/file")
+@public_router.get("/{slide_id}/view")
 def stream_slide_file(slide_id: str, db: Session = Depends(get_db)):
-    """Stream slide document for in-browser PDF viewing."""
+    """Stream slide document for in-browser viewing."""
     slide = db.query(Slide).filter(Slide.id == slide_id).first()
     if not slide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Slide not found.")
@@ -112,6 +120,7 @@ def stream_slide_file(slide_id: str, db: Session = Depends(get_db)):
         media_type=content_type,
         filename=slide.filename,
         content_disposition_type="inline",
+        headers={"Content-Disposition": f'inline; filename="{slide.filename}"'},
     )
 
 
@@ -141,6 +150,7 @@ def download_slide_file(slide_id: str, db: Session = Depends(get_db)):
         media_type=content_type,
         filename=slide.filename,
         content_disposition_type="attachment",
+        headers={"Content-Disposition": f'attachment; filename="{slide.filename}"'},
     )
 
 
@@ -148,49 +158,89 @@ def download_slide_file(slide_id: str, db: Session = Depends(get_db)):
 # ADMIN ENDPOINTS FOR PROFESSOR / UPLOAD
 # ==========================================
 
-@admin_router.get("", response_model=list[SlideResponse])
+@admin_router.get("", response_model=AdminSlidesListResponse)
 def list_admin_slides(
     subject_id: str | None = Query(None),
     professor_name: str | None = Query(None),
+    search: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
     admin: dict[str, Any] = Depends(get_current_admin_user),
-) -> list[SlideResponse]:
-    """Admin inspection of all uploaded slides."""
+) -> AdminSlidesListResponse:
+    """Admin inspection of all uploaded slides with pagination."""
     query = db.query(Slide)
-    if subject_id and subject_id not in ("", "all", "ALL"):
+    if subject_id and subject_id not in ("", "all", "ALL", "None"):
         query = query.filter(Slide.subject_id == subject_id)
-    if professor_name:
+    if professor_name and professor_name.strip():
         query = query.filter(Slide.professor_name.ilike(f"%{professor_name.strip()}%"))
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = query.filter(
+            Slide.professor_name.ilike(term)
+            | Slide.topic_name.ilike(term)
+            | Slide.title.ilike(term)
+        )
 
-    slides = query.order_by(Slide.created_at.desc()).all()
-    return [format_slide_response(s) for s in slides]
+    total = query.count()
+    pages = max(1, math.ceil(total / limit))
+    offset = (page - 1) * limit
+
+    slides = query.order_by(Slide.created_at.desc()).offset(offset).limit(limit).all()
+    items = [format_slide_response(s) for s in slides]
+
+    return AdminSlidesListResponse(
+        items=items,
+        total=total,
+        page=page,
+        pages=pages,
+    )
 
 
 @admin_router.post("", response_model=SlideResponse, status_code=status.HTTP_201_CREATED)
 def upload_slide_admin(
     file: UploadFile = File(..., description="Slide PDF or PPT/PPTX file"),
-    subject_id: str = Form(...),
+    subject_id: str | None = Form(None),
     professor_name: str = Form(...),
     professor_title: str | None = Form(None),
     topic_name: str = Form(...),
     title: str = Form(...),
     description: str | None = Form(None),
-    semester: int | None = Form(None),
-    academic_year: int | None = Form(None),
+    semester: str | None = Form(None),
+    academic_year: str | None = Form(None),
     db: Session = Depends(get_db),
     admin: dict[str, Any] = Depends(get_current_admin_user),
 ) -> SlideResponse:
     """Upload a new lecture slide document for a professor and subject."""
-    subject = db.query(Subject).filter(Subject.id == subject_id).first()
+    # Resolve subject: if not provided or empty, resolve to first available subject
+    resolved_subject_id = (subject_id or "").strip()
+    if resolved_subject_id:
+        subject = db.query(Subject).filter(Subject.id == resolved_subject_id).first()
+    else:
+        subject = db.query(Subject).first()
+
     if not subject:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Subject '{subject_id}' not found.")
+        # Create a default Computer Science subject if none exist
+        subject = Subject(
+            id=str(uuid.uuid4()),
+            name="General Engineering",
+            code="GEN-101",
+            department="Computer Science & Engineering",
+            is_active=True,
+        )
+        db.add(subject)
+        db.commit()
+        db.refresh(subject)
 
     orig_filename = file.filename or "lecture_slide.pdf"
     ext = Path(orig_filename).suffix.lstrip(".").lower()
+    if not ext:
+        ext = "pdf"
+
     if ext not in ("pdf", "pptx", "ppt"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Unsupported file format. Please upload PDF, PPTX, or PPT slides.",
+            detail=f"Unsupported file format '.{ext}'. Please upload PDF, PPTX, or PPT slides.",
         )
 
     slide_id = str(uuid.uuid4())
@@ -201,7 +251,6 @@ def upload_slide_admin(
         content_type=file.content_type or "application/pdf",
     )
 
-    # Determine file size
     file_path = storage_service.get_slide_path(storage_key)
     file_size = file_path.stat().st_size if file_path.is_file() else 0
 
@@ -217,8 +266,8 @@ def upload_slide_admin(
         storage_key=storage_key,
         file_type=ext,
         file_size_bytes=file_size,
-        semester=semester,
-        academic_year=academic_year,
+        semester=semester.strip() if semester else None,
+        academic_year=academic_year.strip() if academic_year else None,
         download_count=0,
     )
     db.add(slide)
@@ -235,43 +284,42 @@ def update_slide_admin(
     db: Session = Depends(get_db),
     admin: dict[str, Any] = Depends(get_current_admin_user),
 ) -> SlideResponse:
-    """Update slide metadata (topic, title, professor details)."""
+    """Update slide metadata (topic, title, professor details, semester)."""
     slide = db.query(Slide).filter(Slide.id == slide_id).first()
     if not slide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Slide not found.")
 
-    if payload.subject_id is not None:
-        subj = db.query(Subject).filter(Subject.id == payload.subject_id).first()
-        if not subj:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subject not found.")
-        slide.subject_id = subj.id
+    if payload.subject_id is not None and payload.subject_id.strip():
+        subj = db.query(Subject).filter(Subject.id == payload.subject_id.strip()).first()
+        if subj:
+            slide.subject_id = subj.id
 
-    if payload.professor_name is not None:
+    if payload.professor_name is not None and payload.professor_name.strip():
         slide.professor_name = payload.professor_name.strip()
     if payload.professor_title is not None:
         slide.professor_title = payload.professor_title.strip() or None
-    if payload.topic_name is not None:
+    if payload.topic_name is not None and payload.topic_name.strip():
         slide.topic_name = payload.topic_name.strip()
-    if payload.title is not None:
+    if payload.title is not None and payload.title.strip():
         slide.title = payload.title.strip()
     if payload.description is not None:
         slide.description = payload.description.strip() or None
     if payload.semester is not None:
-        slide.semester = payload.semester
+        slide.semester = payload.semester.strip() or None
     if payload.academic_year is not None:
-        slide.academic_year = payload.academic_year
+        slide.academic_year = payload.academic_year.strip() or None
 
     db.commit()
     db.refresh(slide)
     return format_slide_response(slide)
 
 
-@admin_router.delete("/{slide_id}", status_code=status.HTTP_204_NO_CONTENT)
+@admin_router.delete("/{slide_id}")
 def delete_slide_admin(
     slide_id: str,
     db: Session = Depends(get_db),
     admin: dict[str, Any] = Depends(get_current_admin_user),
-):
+) -> dict[str, Any]:
     """Delete a slide and purge its stored document file."""
     slide = db.query(Slide).filter(Slide.id == slide_id).first()
     if not slide:
@@ -280,4 +328,4 @@ def delete_slide_admin(
     storage_service.delete_slide_file(slide.storage_key)
     db.delete(slide)
     db.commit()
-    return None
+    return {"success": True, "message": "Slide deleted successfully."}

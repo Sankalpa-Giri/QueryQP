@@ -11,6 +11,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Ensure tessdata paths are linked and TESSDATA_PREFIX is configured
+ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/5/tessdata
+RUN mkdir -p /usr/share/tessdata && \
+    (cp -rn /usr/share/tesseract-ocr/5/tessdata/* /usr/share/tessdata/ 2>/dev/null || true) && \
+    (ln -sf /usr/share/tesseract-ocr/5/tessdata/* /usr/share/tessdata/ 2>/dev/null || true)
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

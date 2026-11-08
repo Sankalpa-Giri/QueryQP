@@ -30,9 +30,9 @@ class Slide(Base):
     file_type = Column(String(10), nullable=False, default="pdf")  # pdf, pptx, ppt
     file_size_bytes = Column(Integer, nullable=False, default=0)
 
-    # Academic metadata
-    semester = Column(Integer, nullable=True)
-    academic_year = Column(Integer, nullable=True)
+    # Academic metadata (Strings to accommodate flexible values e.g. '4th Semester' or '2024-2025')
+    semester = Column(String(50), nullable=True)
+    academic_year = Column(String(50), nullable=True)
     download_count = Column(Integer, nullable=False, default=0)
 
     created_at = Column(DateTime, default=lambda: datetime.now(UTC), nullable=False)
