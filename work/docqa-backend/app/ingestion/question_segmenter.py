@@ -15,7 +15,6 @@ MAIN_Q_REGEX = re.compile(
     r"|[\(\[]\s*(\d{1,2})\s*[\)\]](?:\s*[\.\:\-]?\s*(?:\(([a-z]|[ivx]+)\)|([a-z]|[ivx]+)[\)\]]))?"
     r"|(\d{1,2})\s*[\(\[]([a-z]|[ivx]+)[\)\]\\\/\:]?"
     r"|(?:\b([IVXLCDM]{1,4})\b)\s*[\.\:\-\)]"
-    r"|(\b[1-9]\b)\s*$"
     r"|(\d{1,2})\s+(?=[A-Z])"
     r")",
     re.IGNORECASE,
@@ -227,7 +226,10 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
     # 2. Collect lines
     raw_lines: list[dict] = []
     for p_num, el in elements_to_use:
-        for l in str(el.text).split("\n"):
+        el_text = str(el.text)
+        # Split embedded question headers like 'operation. Q.5. 5 Let a single linked list...'
+        el_text = re.sub(r"(?<=[.?!;])\s+(Q(?:uestion)?\.?\s*\d{1,2}[\.\:\-\s])", r"\n\1", el_text, flags=re.IGNORECASE)
+        for l in el_text.split("\n"):
             s = l.strip()
             if not s:
                 continue
@@ -279,6 +281,16 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
         full_text = full_text.strip(".- \t")
 
         if len(full_text) < 5:
+            current_lines = []
+            current_boxes = []
+            return
+
+        # If text is solely marks tokens / brackets (e.g. [5X1], [10], 2.5) with no question text, don't create an empty question
+        stripped_alpha = re.sub(r"[\[\(\]\)\d\sXx\.\:\-\,\;\=\/]", "", full_text).strip()
+        if not stripped_alpha and (extract_marks(full_text) is not None or "x" in full_text.lower() or full_text.strip("[]() ").isdigit()):
+            m_val = extract_marks(full_text) or parse_marks_from_tokens(full_text)
+            if m_val and not current_marks:
+                current_marks = m_val
             current_lines = []
             current_boxes = []
             return

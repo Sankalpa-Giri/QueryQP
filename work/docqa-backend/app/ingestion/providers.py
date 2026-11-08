@@ -17,8 +17,13 @@ logger = logging.getLogger(__name__)
 
 def get_tessdata_path() -> str | None:
     """Locate valid tessdata directory containing eng.traineddata."""
+    backend_root = Path(__file__).resolve().parent.parent.parent
+    project_root = backend_root.parent
     candidates = [
         os.environ.get("TESSDATA_PREFIX", ""),
+        str(project_root / "data" / "tessdata"),
+        str(backend_root / "data" / "tessdata"),
+        "data/tessdata",
         "/usr/share/tesseract-ocr/5/tessdata",
         "/usr/share/tesseract-ocr/4.00/tessdata",
         "/usr/share/tessdata",
@@ -28,6 +33,22 @@ def get_tessdata_path() -> str | None:
     for c in candidates:
         if c and os.path.isdir(c) and os.path.exists(os.path.join(c, "eng.traineddata")):
             return c
+
+    # Automatic fallback: ensure data/tessdata/eng.traineddata exists locally
+    try:
+        import urllib.request
+        target_dir = project_root / "data" / "tessdata"
+        target_dir.mkdir(parents=True, exist_ok=True)
+        target_file = target_dir / "eng.traineddata"
+        if not target_file.exists() or target_file.stat().st_size < 1000:
+            url = "https://github.com/tesseract-ocr/tessdata_fast/raw/main/eng.traineddata"
+            logger.info("Downloading eng.traineddata for offline PyMuPDF OCR...")
+            urllib.request.urlretrieve(url, target_file)
+        if target_file.exists() and target_file.stat().st_size > 1000:
+            return str(target_dir)
+    except Exception as e:
+        logger.debug("Failed to auto-download eng.traineddata: %s", e)
+
     return None
 
 
@@ -215,18 +236,8 @@ class PyMuPDFProvider(BaseDocumentParser):
                 if el_type not in ("header", "footer"):
                     page_md_lines.append(cleaned)
 
-            if not page_elements:
-                fallback_label = f"Question Paper Page {p_idx}"
-                page_elements.append(
-                    ParsedElement(
-                        id=f"page-{p_idx}-el-1",
-                        type="paragraph",
-                        text=fallback_label,
-                        bbox=[50.0, 50.0, w - 50.0, h - 50.0],
-                        page_number=p_idx,
-                    )
-                )
-                page_md_lines.append(fallback_label)
+            # If no elements extracted on this page, do not inject dummy text
+            pass
 
             page_md = "\n\n".join(page_md_lines)
             pages.append(
@@ -260,7 +271,7 @@ def is_valid_llama_key(key: str | None) -> bool:
 
 
 class LlamaParseProvider(BaseDocumentParser):
-    """Cloud-based parser using LlamaCloud / LlamaParse API with fail-safe local fallback."""
+    """Cloud-based parser using modern LlamaCloud v2 Parse API with fail-safe local OCR fallback."""
 
     def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.environ.get("LLAMA_CLOUD_API_KEY", "")
@@ -271,77 +282,23 @@ class LlamaParseProvider(BaseDocumentParser):
             return PyMuPDFProvider().parse(path)
 
         try:
-            # First preference: official llama_parse SDK
-            try:
-                from llama_parse import LlamaParse
-
-                parser = LlamaParse(
-                    api_key=self.api_key,
-                    result_type="markdown",
-                    split_by_page=True,
-                    verbose=False,
-                )
-                docs = parser.load_data(str(path))
-                if docs:
-                    pages: list[ParsedPage] = []
-                    full_md_parts: list[str] = []
-                    for idx, doc_item in enumerate(docs, start=1):
-                        p_text = doc_item.text or ""
-                        elements: list[ParsedElement] = [
-                            ParsedElement(
-                                id=f"page-{idx}-el-1",
-                                type="paragraph",
-                                text=p_text,
-                                bbox=[50.0, 50.0, 545.0, 792.0],
-                                page_number=idx,
-                            )
-                        ]
-                        pages.append(
-                            ParsedPage(
-                                page_number=idx,
-                                width=595.0,
-                                height=842.0,
-                                elements=elements,
-                                markdown=p_text,
-                            )
-                        )
-                        full_md_parts.append(f"<!-- Page {idx} -->\n" + p_text)
-                    return ParsedDocumentResult(
-                        page_count=len(pages),
-                        markdown="\n\n---\n\n".join(full_md_parts),
-                        pages=pages,
-                        parser_name="llama_parse",
-                        parser_version="1.0.0",
-                    )
-            except ImportError:
-                pass
-
-            # Fallback to llama_cloud v2 client if installed
             from llama_cloud.client import LlamaCloud
-            import llama_cloud.types as lct
 
             client = LlamaCloud(token=self.api_key)
             with open(path, "rb") as f:
                 uploaded_file = client.files.upload_file(upload_file=f)
 
-            output_options = lct.LlamaParseOutputOptions(
-                markdown=lct.LlamaParseMarkdownOptions(),
-                extract_printed_page_number=True,
-            )
-
             job = client.v_2.parse_file(
                 file_id=uploaded_file.id,
                 tier="fast",
                 version="latest",
-                output_options=output_options,
             )
 
-            # Poll for completion with bounded timeout (max 30s)
-            parse_result = None
             import time
-            for _ in range(15):
+            parse_result = None
+            for _ in range(25):
                 time.sleep(2)
-                res = client.v_2.get_parse_job(job_id=job.id, expand=["markdown", "items"])
+                res = client.v_2.get_parse_job(job_id=job.id, expand=["markdown"])
                 status_str = res.job.status.value if hasattr(res.job.status, "value") else str(res.job.status)
                 if status_str in ("COMPLETED", "SUCCESS"):
                     parse_result = res
@@ -356,16 +313,26 @@ class LlamaParseProvider(BaseDocumentParser):
             full_md_parts: list[str] = []
 
             for idx, p in enumerate(parse_result.markdown.pages, start=1):
-                p_text = p.markdown or ""
-                elements: list[ParsedElement] = [
-                    ParsedElement(
-                        id=f"page-{idx}-el-1",
-                        type="paragraph",
-                        text=p_text,
-                        bbox=[50.0, 50.0, 545.0, 792.0],
-                        page_number=idx,
+                p_text = (p.markdown or "").strip()
+                # Pre-split inline main questions like 'operation. Q.5. 5 Let a single linked list...'
+                p_text = re.sub(
+                    r"(?<=[.?!;])\s+(Q(?:uestion)?\.?\s*\d{1,2}[\.\:\-\s])",
+                    r"\n\n\1",
+                    p_text,
+                    flags=re.IGNORECASE,
+                )
+                elements: list[ParsedElement] = []
+                blocks = [b.strip() for b in p_text.split("\n\n") if b.strip()]
+                for b_idx, block in enumerate(blocks, start=1):
+                    elements.append(
+                        ParsedElement(
+                            id=f"page-{idx}-el-{b_idx}",
+                            type="paragraph",
+                            text=block,
+                            bbox=[50.0, 50.0, 545.0, 792.0],
+                            page_number=idx,
+                        )
                     )
-                ]
                 pages.append(
                     ParsedPage(
                         page_number=idx,

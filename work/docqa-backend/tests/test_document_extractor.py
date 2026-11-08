@@ -13,10 +13,16 @@ from app.ingestion.router import extract_document
 
 
 def _find_test_pdf():
-    for p in [Path("data/uploads/c789c698-e0df-4a4a-ba1a-24152bec14ae.pdf"), Path("work/docqa-backend/data/uploads/c789c698-e0df-4a4a-ba1a-24152bec14ae.pdf")]:
+    candidates = [
+        Path("test_sample_paper.pdf"),
+        Path("work/docqa-backend/test_sample_paper.pdf"),
+        Path("data/uploads/c789c698-e0df-4a4a-ba1a-24152bec14ae.pdf"),
+        Path("work/docqa-backend/data/uploads/c789c698-e0df-4a4a-ba1a-24152bec14ae.pdf"),
+    ]
+    for p in candidates:
         if p.exists():
             return p
-    return Path("data/uploads/c789c698-e0df-4a4a-ba1a-24152bec14ae.pdf")
+    return Path("test_sample_paper.pdf")
 
 
 class TestDocumentExtractor:
