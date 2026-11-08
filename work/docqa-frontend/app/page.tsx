@@ -578,8 +578,6 @@ export default function StudentPortalPage() {
               {!searching &&
                 searchData &&
                 searchData.results.map((q: Question) => {
-                  const sol = solutionsMap[q.id];
-                  const isSolving = solvingId === q.id;
                   return (
                     <div
                       key={q.id}
@@ -604,31 +602,6 @@ export default function StudentPortalPage() {
                             </span>
                           </span>
 
-                          <span className="px-3 py-1 bg-slate-100 text-slate-700 font-semibold text-xs rounded-lg border border-slate-200">
-                            {q.subject_name} {q.subject_code ? `(${q.subject_code})` : ""}
-                          </span>
-
-                          {/* Repeat Frequency Badge */}
-                          {q.repeat_count && q.repeat_count > 1 && (
-                            <span
-                              className="inline-flex items-center space-x-1 px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 font-bold text-xs rounded-lg"
-                              title={q.appearances?.join(" • ")}
-                            >
-                              <Repeat className="w-3.5 h-3.5" />
-                              <span>Appeared in {q.repeat_count} Papers</span>
-                            </span>
-                          )}
-
-                          {q.topics &&
-                            q.topics.map((top: string) => (
-                              <span
-                                key={top}
-                                className="px-2.5 py-1 bg-blue-50 text-blue-700 font-medium text-xs rounded-lg border border-blue-200"
-                              >
-                                {top}
-                              </span>
-                            ))}
-
                           {hasDiagramReference(q.question_text) && (
                             <button
                               onClick={() => setInspectQuestionId(q.id)}
@@ -652,57 +625,6 @@ export default function StudentPortalPage() {
                         <FormattedQuestionText text={q.question_text} query={activeSearch?.query} />
                       </div>
 
-                      {/* Expandable AI Step-by-Step Solution Drawer */}
-                      {sol && (
-                        <div className="bg-slate-50 rounded-xl border border-blue-200 p-4 sm:p-5 space-y-3 text-xs sm:text-sm">
-                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
-                            <div className="flex items-center space-x-2 text-blue-800 font-bold">
-                              <Sparkles className="w-4 h-4 text-blue-600" />
-                              <span>Step-by-Step Model Solution ({sol.marks} Marks Rubric)</span>
-                            </div>
-                            <span className="text-[11px] px-2 py-0.5 bg-blue-100 text-blue-800 rounded font-semibold">
-                              {sol.model_used}
-                            </span>
-                          </div>
-
-                          <div className="space-y-2 text-slate-800">
-                            {sol.solution_steps.map((step, sIdx) => (
-                              <p key={sIdx} className="leading-relaxed">
-                                {step}
-                              </p>
-                            ))}
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t border-slate-200/80 text-xs">
-                            <div className="bg-white p-3 rounded-lg border border-slate-200">
-                              <span className="font-bold text-slate-700 block mb-1">
-                                Expected Marking Scheme:
-                              </span>
-                              <ul className="list-disc list-inside space-y-1 text-slate-600">
-                                {sol.marking_scheme.map((m, i) => (
-                                  <li key={i}>{m}</li>
-                                ))}
-                              </ul>
-                            </div>
-                            <div className="bg-white p-3 rounded-lg border border-slate-200">
-                              <span className="font-bold text-slate-700 block mb-1">
-                                Historical Exam Appearances ({sol.repeat_count}):
-                              </span>
-                              <div className="flex flex-wrap gap-1.5 mt-1">
-                                {sol.appearances.map((app, i) => (
-                                  <span
-                                    key={i}
-                                    className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded border border-slate-200 font-medium"
-                                  >
-                                    {app}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
                       <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
                         <div className="flex items-center space-x-2 text-slate-500">
                           <FileCheck2 className="w-4 h-4 text-emerald-600" />
@@ -715,22 +637,6 @@ export default function StudentPortalPage() {
                         </div>
 
                         <div className="flex items-center space-x-2">
-                          <button
-                            type="button"
-                            onClick={() => handleSolveQuestion(q.id)}
-                            disabled={isSolving}
-                            className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 rounded-lg font-semibold transition"
-                          >
-                            <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                            <span>
-                              {isSolving
-                                ? "Generating Solution..."
-                                : sol
-                                ? "Hide AI Solution"
-                                : "Explain & Solve with AI"}
-                            </span>
-                          </button>
-
                           <button
                             type="button"
                             onClick={() => setInspectQuestionId(q.id)}
