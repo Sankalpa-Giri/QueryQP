@@ -539,6 +539,38 @@ export async function approveAllDocumentQuestions(documentId: string): Promise<{
   return handleResponse(res);
 }
 
+export async function aiRefineQuestion(id: string): Promise<Question> {
+  const res = await fetch(`${API_V1}/admin/questions/${id}/ai-refine`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<Question>(res);
+}
+
+export async function aiTagTopics(id: string): Promise<Question> {
+  const res = await fetch(`${API_V1}/admin/questions/${id}/ai-topics`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse<Question>(res);
+}
+
+export async function aiRefineAllDocumentQuestions(documentId: string): Promise<{ status: string; document_id: string; refined_count: number }> {
+  const res = await fetch(`${API_V1}/admin/questions/document/${documentId}/ai-refine-all`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(res);
+}
+
+export async function aiReExtractDocumentQuestions(documentId: string): Promise<{ status: string; document_id: string; extracted_count: number }> {
+  const res = await fetch(`${API_V1}/admin/questions/document/${documentId}/ai-re-extract`, {
+    method: "POST",
+    headers: getAuthHeaders(),
+  });
+  return handleResponse(res);
+}
+
 
 export async function setQuestionPublication(id: string, publish: boolean): Promise<Question> {
   const endpoint = publish ? "publish" : "unpublish";

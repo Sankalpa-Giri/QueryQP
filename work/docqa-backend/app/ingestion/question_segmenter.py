@@ -45,6 +45,7 @@ class ExtractedQuestion:
     marks: float | None = None
     bbox: list[float] | None = None
     parent_number: str | None = None
+    topics: list[str] = field(default_factory=list)
     subquestions: list["ExtractedQuestion"] = field(default_factory=list)
 
 

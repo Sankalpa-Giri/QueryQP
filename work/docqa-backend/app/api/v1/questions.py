@@ -16,6 +16,8 @@ from app.models.question import Question, QuestionTopic, Topic
 from app.models.subject import Subject
 from app.retrieval.embeddings import embed_texts
 from app.schemas.question import QuestionResponse, QuestionUpdate
+from app.services.ai_extractor import auto_tag_topics_with_ai, extract_questions_with_ai, is_ai_available, refine_question_with_ai
+from app.services.storage_service import storage_service
 from app.services.subject_service import assign_question_topics, classify_question_topics
 
 admin_router = APIRouter(prefix="/admin/questions", tags=["admin-questions"])
@@ -513,6 +515,241 @@ def unpublish_question_admin(
 ) -> QuestionResponse:
     """Unpublish question to hide from student search."""
     return update_question_admin(question_id, QuestionUpdate(publication_status="UNPUBLISHED"), db, admin)
+
+
+@admin_router.post("/{question_id}/ai-refine", response_model=QuestionResponse)
+def ai_refine_question_admin(
+    question_id: str,
+    db: Session = Depends(get_db),
+    admin: dict[str, Any] = Depends(get_current_admin_user),
+) -> QuestionResponse:
+    """Method 4: Use AI to auto-clean OCR noise, convert math to clean LaTeX, and format tables."""
+    row = (
+        db.query(Question, QuestionPaper, Subject)
+        .join(QuestionPaper, Question.document_id == QuestionPaper.id)
+        .join(Subject, Question.subject_id == Subject.id)
+        .filter(Question.id == question_id)
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found.")
+    q, doc, subj = row
+
+    refined = refine_question_with_ai(q.question_text, subj.name)
+    if not refined or not refined.get("question_text"):
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI refinement did not produce valid output.")
+
+    old_text = q.question_text
+    q.question_text = refined["question_text"]
+    if refined.get("marks") is not None and not q.marks:
+        try:
+            q.marks = float(refined["marks"])
+        except Exception:
+            pass
+
+    if refined.get("topics"):
+        combined_topics = list(dict.fromkeys((q.topics or []) + refined["topics"]))
+        q.topics = combined_topics
+        assign_question_topics(db, q, subj)
+
+    # Re-embed question text
+    try:
+        embs = embed_texts([q.question_text])
+        if embs:
+            q.embedding_json = embs[0]
+    except Exception as err:
+        logger.warning("Re-embedding failed during AI refine: %s", err)
+
+    audit = AuditLog(
+        admin_id=admin["id"],
+        entity_type="QUESTION",
+        entity_id=q.id,
+        action="AI_REFINE",
+        changes_json={"old_text": old_text, "new_text": q.question_text, "topics": q.topics},
+    )
+    db.add(audit)
+    db.commit()
+    db.refresh(q)
+    return _to_question_response(q, doc, subj)
+
+
+@admin_router.post("/{question_id}/ai-topics", response_model=QuestionResponse)
+def ai_tag_topics_admin(
+    question_id: str,
+    db: Session = Depends(get_db),
+    admin: dict[str, Any] = Depends(get_current_admin_user),
+) -> QuestionResponse:
+    """Method 4: Use AI to auto-tag standard curriculum academic topics."""
+    row = (
+        db.query(Question, QuestionPaper, Subject)
+        .join(QuestionPaper, Question.document_id == QuestionPaper.id)
+        .join(Subject, Question.subject_id == Subject.id)
+        .filter(Question.id == question_id)
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found.")
+    q, doc, subj = row
+
+    suggested = auto_tag_topics_with_ai(q.question_text, subj.name)
+    if suggested:
+        q.topics = list(dict.fromkeys((q.topics or []) + suggested))
+        assign_question_topics(db, q, subj)
+
+        audit = AuditLog(
+            admin_id=admin["id"],
+            entity_type="QUESTION",
+            entity_id=q.id,
+            action="AI_TAG_TOPICS",
+            changes_json={"topics": q.topics},
+        )
+        db.add(audit)
+        db.commit()
+        db.refresh(q)
+
+    return _to_question_response(q, doc, subj)
+
+
+@admin_router.post("/document/{document_id}/ai-refine-all", response_model=dict[str, Any])
+def ai_refine_all_document_questions(
+    document_id: str,
+    db: Session = Depends(get_db),
+    admin: dict[str, Any] = Depends(get_current_admin_user),
+) -> dict[str, Any]:
+    """Method 4: Batch auto-clean and format LaTeX math for all pending questions in a paper."""
+    doc = db.query(QuestionPaper).filter(QuestionPaper.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    subj = db.query(Subject).filter(Subject.id == doc.subject_id).first()
+    subj_name = subj.name if subj else None
+
+    questions = (
+        db.query(Question)
+        .filter(Question.document_id == document_id, Question.review_status == ReviewStatus.PENDING)
+        .all()
+    )
+
+    refined_count = 0
+    for q in questions:
+        try:
+            res = refine_question_with_ai(q.question_text, subj_name)
+            if res and res.get("question_text"):
+                q.question_text = res["question_text"]
+                if res.get("marks") is not None and not q.marks:
+                    q.marks = float(res["marks"])
+                if res.get("topics"):
+                    q.topics = list(dict.fromkeys((q.topics or []) + res["topics"]))
+                    if subj:
+                        assign_question_topics(db, q, subj)
+                refined_count += 1
+        except Exception as e:
+            logger.warning("Failed AI refine for question %s: %s", q.id, e)
+
+    # Re-embed updated questions
+    if refined_count > 0:
+        try:
+            texts = [q.question_text for q in questions]
+            embs = embed_texts(texts)
+            for q, emb in zip(questions, embs):
+                q.embedding_json = emb
+        except Exception as err:
+            logger.warning("Re-embedding failed for batch AI refine: %s", err)
+
+        audit = AuditLog(
+            admin_id=admin["id"],
+            entity_type="DOCUMENT",
+            entity_id=doc.id,
+            action="AI_REFINE_ALL",
+            changes_json={"refined_count": refined_count},
+        )
+        db.add(audit)
+        db.commit()
+
+    return {"status": "ok", "document_id": document_id, "refined_count": refined_count}
+
+
+@admin_router.post("/document/{document_id}/ai-re-extract", response_model=dict[str, Any])
+def ai_re_extract_document_questions(
+    document_id: str,
+    db: Session = Depends(get_db),
+    admin: dict[str, Any] = Depends(get_current_admin_user),
+) -> dict[str, Any]:
+    """Method 1: Full AI re-extraction directly from stored markdown to replace rough OCR questions."""
+    doc = db.query(QuestionPaper).filter(QuestionPaper.id == document_id).first()
+    if not doc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    subj = db.query(Subject).filter(Subject.id == doc.subject_id).first()
+    subj_name = subj.name if subj else None
+
+    # Load stored markdown
+    if not doc.markdown_key:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No markdown stored for this document.")
+
+    markdown_text = storage_service.get_markdown(doc.markdown_key)
+    if not markdown_text:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Markdown file not found on disk or storage.")
+    extracted = extract_questions_with_ai(markdown_text, subj_name, doc.page_count or 1)
+    if not extracted:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI extraction failed to extract questions.")
+
+    # Idempotently delete existing questions
+    existing_q_ids = [q[0] for q in db.query(Question.id).filter(Question.document_id == doc.id).all()]
+    if existing_q_ids:
+        db.query(QuestionTopic).filter(QuestionTopic.question_id.in_(existing_q_ids)).delete(synchronize_session=False)
+        db.query(Question).filter(Question.document_id == doc.id).delete()
+
+    created_questions: list[Question] = []
+    for eq in extracted:
+        q_row = Question(
+            id=str(uuid.uuid4()),
+            document_id=doc.id,
+            subject_id=doc.subject_id,
+            question_number=eq.question_number,
+            question_text=eq.question_text,
+            normalized_text=eq.normalized_text,
+            page_number=eq.page_number,
+            page_end=eq.page_end,
+            marks=eq.marks,
+            bbox=eq.bbox,
+            topics=list(eq.topics) if getattr(eq, "topics", None) else [],
+            review_status=ReviewStatus.PENDING,
+            publication_status=PublicationStatus.DRAFT,
+        )
+        db.add(q_row)
+        created_questions.append(q_row)
+
+    db.flush()
+
+    for q_row in created_questions:
+        try:
+            if subj:
+                assign_question_topics(db, q_row, subj)
+        except Exception:
+            pass
+
+    # Embed new questions
+    if created_questions:
+        try:
+            texts = [q.question_text for q in created_questions]
+            embs = embed_texts(texts)
+            for q, emb in zip(created_questions, embs):
+                q.embedding_json = emb
+        except Exception as err:
+            logger.warning("Re-embedding failed during AI re-extract: %s", err)
+
+    audit = AuditLog(
+        admin_id=admin["id"],
+        entity_type="DOCUMENT",
+        entity_id=doc.id,
+        action="AI_RE_EXTRACT",
+        changes_json={"extracted_count": len(created_questions)},
+    )
+    db.add(audit)
+    db.commit()
+
+    return {"status": "ok", "document_id": document_id, "extracted_count": len(created_questions)}
 
 
 @admin_router.delete("/{question_id}", status_code=status.HTTP_204_NO_CONTENT)

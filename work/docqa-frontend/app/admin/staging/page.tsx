@@ -12,6 +12,10 @@ import {
   approveQuestion,
   bulkApproveQuestions,
   approveAllDocumentQuestions,
+  aiRefineQuestion,
+  aiTagTopics,
+  aiRefineAllDocumentQuestions,
+  aiReExtractDocumentQuestions,
   deleteQuestion,
   createQuestion,
   CreateQuestionPayload,
@@ -40,6 +44,7 @@ import {
   ArrowRight,
   Plus,
   Sparkles,
+  Tag,
   Layers,
   Table as TableIcon,
   Image as ImageIcon,
@@ -87,6 +92,7 @@ function StagingAreaContent() {
 
   // Expanded card state
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+  const [isRefiningModal, setIsRefiningModal] = useState(false);
 
   // Fetch subjects
   const { data: subjects = [] } = useQuery<Subject[]>({
@@ -166,6 +172,51 @@ function StagingAreaContent() {
       queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
       setSelectedQuestionIds([]);
       showFeedback(`All questions for this paper approved and moved to Question Bank!`);
+    },
+  });
+
+  const aiRefineMutation = useMutation({
+    mutationFn: (id: string) => aiRefineQuestion(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["staging-questions"] });
+      showFeedback(`Question ${data.question_number} enhanced with AI (LaTeX formatted & cleaned)!`);
+    },
+    onError: (err: any) => {
+      alert(err.message || "AI refinement failed.");
+    },
+  });
+
+  const aiTopicsMutation = useMutation({
+    mutationFn: (id: string) => aiTagTopics(id),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["staging-questions"] });
+      showFeedback(`Question ${data.question_number} topics auto-tagged with AI!`);
+    },
+    onError: (err: any) => {
+      alert(err.message || "AI topic tagging failed.");
+    },
+  });
+
+  const aiRefineAllMutation = useMutation({
+    mutationFn: (docId: string) => aiRefineAllDocumentQuestions(docId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["staging-questions"] });
+      showFeedback(`AI enhanced and formatted ${data.refined_count} questions for this paper!`);
+    },
+    onError: (err: any) => {
+      alert(err.message || "Batch AI refinement failed.");
+    },
+  });
+
+  const aiReExtractMutation = useMutation({
+    mutationFn: (docId: string) => aiReExtractDocumentQuestions(docId),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["staging-questions"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-documents"] });
+      showFeedback(`AI re-extracted ${data.extracted_count} clean questions directly from paper!`);
+    },
+    onError: (err: any) => {
+      alert(err.message || "AI re-extraction failed.");
     },
   });
 
@@ -376,7 +427,29 @@ function StagingAreaContent() {
             </div>
           </div>
 
-          <div className="flex items-center space-x-2 flex-shrink-0">
+          <div className="flex items-center space-x-2 flex-shrink-0 flex-wrap gap-y-2">
+            <button
+              onClick={() => {
+                if (confirm("Re-run full AI extraction directly from the paper markdown?\n\nThis will replace pending rough questions with clean LaTeX equations, complete subquestions, and syllabus tags.")) {
+                  aiReExtractMutation.mutate(activeDocument.id);
+                }
+              }}
+              disabled={aiReExtractMutation.isPending}
+              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+              title="Full AI Re-Extraction directly from document markdown"
+            >
+              <Sparkles className={`w-3.5 h-3.5 ${aiReExtractMutation.isPending ? "animate-spin" : ""}`} />
+              <span>{aiReExtractMutation.isPending ? "Re-Extracting..." : "AI Re-Extract Paper"}</span>
+            </button>
+            <button
+              onClick={() => aiRefineAllMutation.mutate(activeDocument.id)}
+              disabled={aiRefineAllMutation.isPending || questions.length === 0}
+              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+              title="Format LaTeX math & fix OCR noise across all pending questions"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${aiRefineAllMutation.isPending ? "animate-spin" : ""}`} />
+              <span>{aiRefineAllMutation.isPending ? "Enhancing..." : `AI Format All (${questions.length})`}</span>
+            </button>
             <button
               onClick={() => approveAllDocMutation.mutate(activeDocument.id)}
               disabled={approveAllDocMutation.isPending || questions.length === 0}
@@ -672,6 +745,26 @@ function StagingAreaContent() {
                       {/* Actions */}
                       <td className="px-4 py-3 text-right whitespace-nowrap align-top">
                         <div className="flex items-center justify-end gap-1.5">
+                          {/* AI Refine & Format LaTeX */}
+                          <button
+                            onClick={() => aiRefineMutation.mutate(q.id)}
+                            disabled={aiRefineMutation.isPending && (aiRefineMutation.variables as string) === q.id}
+                            title="AI Clean OCR & Format LaTeX Math"
+                            className="p-1.5 text-purple-600 hover:text-purple-800 hover:bg-purple-50 rounded-lg transition"
+                          >
+                            <Sparkles className={`w-3.5 h-3.5 ${aiRefineMutation.isPending && (aiRefineMutation.variables as string) === q.id ? "animate-spin" : ""}`} />
+                          </button>
+
+                          {/* AI Tag Topics */}
+                          <button
+                            onClick={() => aiTopicsMutation.mutate(q.id)}
+                            disabled={aiTopicsMutation.isPending && (aiTopicsMutation.variables as string) === q.id}
+                            title="AI Auto-Tag Syllabus Topics"
+                            className="p-1.5 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition"
+                          >
+                            <Tag className={`w-3.5 h-3.5 ${aiTopicsMutation.isPending && (aiTopicsMutation.variables as string) === q.id ? "animate-spin" : ""}`} />
+                          </button>
+
                           {/* Inspect Source */}
                           <button
                             onClick={() => setInspectQuestionId(q.id)}
@@ -955,6 +1048,34 @@ function StagingAreaContent() {
                     Question Text (Markdown, Tables & Diagrams supported)
                   </label>
                   <div className="flex items-center space-x-1.5">
+                    <button
+                      type="button"
+                      disabled={isRefiningModal}
+                      onClick={async () => {
+                        if (!editingQuestion) return;
+                        try {
+                          setIsRefiningModal(true);
+                          const res = await aiRefineQuestion(editingQuestion.id);
+                          setEditText(res.question_text);
+                          if (res.marks !== null && res.marks !== undefined) {
+                            setEditMarks(res.marks.toString());
+                          }
+                          if (res.topics && res.topics.length > 0) {
+                            setEditTopics(res.topics.join(", "));
+                          }
+                          showFeedback("AI auto-formatted question and KaTeX math!");
+                        } catch (err: any) {
+                          alert(err.message || "AI auto-format failed");
+                        } finally {
+                          setIsRefiningModal(false);
+                        }
+                      }}
+                      className="inline-flex items-center space-x-1 text-[11px] font-semibold text-purple-700 hover:text-purple-900 bg-purple-50 px-2 py-0.5 rounded border border-purple-200 transition disabled:opacity-50"
+                      title="Auto-clean OCR, format KaTeX math, and detect marks/topics with AI"
+                    >
+                      <Sparkles className={`w-3 h-3 ${isRefiningModal ? "animate-spin" : ""}`} />
+                      <span>{isRefiningModal ? "Refining..." : "AI Auto-Fix & Format"}</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => {

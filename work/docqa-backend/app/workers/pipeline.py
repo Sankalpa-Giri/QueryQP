@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.db.session import SessionLocal
 from app.ingestion.providers import get_document_parser
 from app.ingestion.question_segmenter import segment_questions_from_parsed
+from app.services.ai_extractor import extract_questions_with_ai
 from app.models.batch import QuestionPaperBatch
 from app.models.document import QuestionPaper
 from app.models.enums import BatchStatus, ProcessingStage, PublicationStatus, ReviewStatus, StageStatus
@@ -89,7 +90,19 @@ def _execute_document_pipeline(document_id: str, db: Session, parser_type: str |
         doc.extraction_status = StageStatus.RUNNING
         db.commit()
 
-        extracted_questions = segment_questions_from_parsed(parsed_result)
+        # Method 1: Try Vision/Multimodal AI extraction first with automatic LaTeX formatting & topics
+        subj_name = doc.subject.name if getattr(doc, "subject", None) else None
+        extracted_questions = extract_questions_with_ai(
+            markdown=parsed_result.markdown,
+            subject_name=subj_name,
+            page_count=parsed_result.page_count,
+        )
+
+        # Fallback to rule-based segmentation if AI is not available or returned no questions
+        if not extracted_questions:
+            logger.info("AI extraction unavailable or empty; falling back to rule-based segmenter for document %s", doc.id)
+            extracted_questions = segment_questions_from_parsed(parsed_result)
+
         logger.info("Segmenter extracted %d questions for document %s", len(extracted_questions), doc.id)
 
         # Fail-safe: Ensure document always has at least one staged question for review
@@ -133,7 +146,7 @@ def _execute_document_pipeline(document_id: str, db: Session, parser_type: str |
                 page_end=eq.page_end,
                 marks=eq.marks,
                 bbox=eq.bbox,
-                topics=[],
+                topics=list(eq.topics) if getattr(eq, "topics", None) else [],
                 review_status=ReviewStatus.PENDING,
                 publication_status=PublicationStatus.DRAFT,
             )
