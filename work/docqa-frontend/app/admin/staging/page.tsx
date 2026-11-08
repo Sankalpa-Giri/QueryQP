@@ -14,9 +14,7 @@ import {
   approveAllDocumentQuestions,
   deleteQuestion,
   createQuestion,
-  splitQuestion,
   CreateQuestionPayload,
-  SplitQuestionPart,
   Question,
   Subject,
   QuestionPaper,
@@ -41,7 +39,6 @@ import {
   RefreshCw,
   ArrowRight,
   Plus,
-  GitFork,
   Sparkles,
   Layers,
   Table as TableIcon,
@@ -53,14 +50,6 @@ import {
   SAMPLE_DIAGRAM_REF_TEMPLATE,
   hasDiagramReference,
 } from "../../../components/FormattedQuestionContent";
-
-interface SplitPartForm {
-  question_number: string;
-  question_text: string;
-  marks: string;
-  topics: string;
-  page_number: number;
-}
 
 function StagingAreaContent() {
   const searchParams = useSearchParams();
@@ -91,10 +80,6 @@ function StagingAreaContent() {
   const [addPage, setAddPage] = useState("1");
   const [addTopics, setAddTopics] = useState("");
   const [addText, setAddText] = useState("");
-
-  // Split Question modal state
-  const [splittingQuestion, setSplittingQuestion] = useState<Question | null>(null);
-  const [splitParts, setSplitParts] = useState<SplitPartForm[]>([]);
 
   // Selection state for bulk operations
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
@@ -222,17 +207,6 @@ function StagingAreaContent() {
     },
   });
 
-  const splitMutation = useMutation({
-    mutationFn: ({ id, parts }: { id: string; parts: SplitQuestionPart[] }) =>
-      splitQuestion(id, parts),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["staging-questions"] });
-      queryClient.invalidateQueries({ queryKey: ["admin-dashboard"] });
-      setSplittingQuestion(null);
-      showFeedback(`Question successfully split into ${data.length} separate bits!`);
-    },
-  });
-
   // Modal open & save
   const handleOpenEdit = (q: Question) => {
     setEditingQuestion(q);
@@ -288,136 +262,6 @@ function StagingAreaContent() {
     });
   };
 
-  // Split Modal open & auto-detect
-  const handleOpenSplit = (q: Question) => {
-    setSplittingQuestion(q);
-    const detected = autoDetectBits(q.question_text, q.question_number, q.marks, q.page_number);
-    setSplitParts(detected);
-  };
-
-  function autoDetectBits(
-    text: string,
-    baseNumber: string,
-    defaultMarks?: number | null,
-    pageNum: number = 1
-  ): SplitPartForm[] {
-    const bitRegex = /(?:(?<=[.?!;\]\)]|\n)\s*|\s+)(?:\(([b-z]|[ivx]+)[\)\\\/\:]|([b-z])[\)\\\/\:])\s+/gi;
-    const matches = Array.from(text.matchAll(bitRegex));
-
-    // Base prefix, e.g. "Q4(a)" -> "Q4", "Q2" -> "Q2", "4" -> "Q4"
-    let cleanBase = baseNumber.replace(/\([a-z0-9]+\)$/i, "");
-    if (!cleanBase.toUpperCase().startsWith("Q")) {
-      cleanBase = `Q${cleanBase}`;
-    }
-
-    if (matches.length === 0) {
-      // Split into 2 parts by default
-      return [
-        {
-          question_number: `${cleanBase}(a)`,
-          question_text: text,
-          marks: defaultMarks ? (defaultMarks / 2).toFixed(1) : "",
-          topics: "",
-          page_number: pageNum,
-        },
-        {
-          question_number: `${cleanBase}(b)`,
-          question_text: "",
-          marks: defaultMarks ? (defaultMarks / 2).toFixed(1) : "",
-          topics: "",
-          page_number: pageNum,
-        },
-      ];
-    }
-
-    const parts: SplitPartForm[] = [];
-    const firstMatch = matches[0];
-    const part1Text = text.substring(0, firstMatch.index).trim();
-    const firstLetter = (firstMatch[1] || firstMatch[2] || "").toLowerCase();
-    const part1Letter = firstLetter === "b" ? "a" : firstLetter === "ii" ? "i" : "a";
-
-    const totalParts = matches.length + 1;
-    const splitMarks = defaultMarks ? (defaultMarks / totalParts).toFixed(1) : "";
-
-    parts.push({
-      question_number: `${cleanBase}(${part1Letter})`,
-      question_text: part1Text.replace(/^(?:\([a-z0-9]+\)|[a-z0-9]+[\)\:\.])\s*/i, "").trim(),
-      marks: splitMarks,
-      topics: "",
-      page_number: pageNum,
-    });
-
-    for (let i = 0; i < matches.length; i++) {
-      const cur = matches[i];
-      const nextStart = i < matches.length - 1 ? matches[i + 1].index : text.length;
-      const bitText = text.substring(cur.index! + cur[0].length, nextStart).trim();
-      const bitLetter = (cur[1] || cur[2] || "").toLowerCase();
-
-      parts.push({
-        question_number: `${cleanBase}(${bitLetter})`,
-        question_text: bitText.replace(/^(?:\([a-z0-9]+\)|[a-z0-9]+[\)\:\.])\s*/i, "").trim(),
-        marks: splitMarks,
-        topics: "",
-        page_number: pageNum,
-      });
-    }
-
-    return parts;
-  }
-
-  const handleAddSplitPart = () => {
-    if (!splittingQuestion) return;
-    let cleanBase = splittingQuestion.question_number.replace(/\([a-z0-9]+\)$/i, "");
-    if (!cleanBase.toUpperCase().startsWith("Q")) cleanBase = `Q${cleanBase}`;
-    const nextChar = String.fromCharCode(97 + splitParts.length); // a, b, c, d...
-
-    setSplitParts([
-      ...splitParts,
-      {
-        question_number: `${cleanBase}(${nextChar})`,
-        question_text: "",
-        marks: "",
-        topics: "",
-        page_number: splittingQuestion.page_number,
-      },
-    ]);
-  };
-
-  const handleRemoveSplitPart = (index: number) => {
-    if (splitParts.length <= 2) return;
-    setSplitParts(splitParts.filter((_, idx) => idx !== index));
-  };
-
-  const handleUpdateSplitPart = (index: number, field: keyof SplitPartForm, value: any) => {
-    const updated = [...splitParts];
-    updated[index] = { ...updated[index], [field]: value };
-    setSplitParts(updated);
-  };
-
-  const handleSaveSplit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!splittingQuestion) return;
-
-    const payloadParts: SplitQuestionPart[] = splitParts.map((p) => ({
-      question_number: p.question_number.trim(),
-      question_text: p.question_text.trim(),
-      marks: p.marks ? parseFloat(p.marks) : null,
-      topics: p.topics.split(",").map((t) => t.trim()).filter(Boolean),
-      page_number: p.page_number,
-    }));
-
-    // Ensure all have text
-    if (payloadParts.some((p) => !p.question_text || !p.question_number)) {
-      alert("All split parts must have a question number and question text.");
-      return;
-    }
-
-    splitMutation.mutate({
-      id: splittingQuestion.id,
-      parts: payloadParts,
-    });
-  };
-
   // Selection handlers
   const toggleSelectAll = () => {
     if (selectedQuestionIds.length === questions.length) {
@@ -461,8 +305,8 @@ function StagingAreaContent() {
             </h1>
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Questions parsed by LlamaParse arrive here first for manual verification.
-            Inspect, split mixed bits, manually add missing questions, and approve verified questions into the Question Bank.
+            Questions parsed arrive here first for manual verification.
+            Inspect, manually add missing questions, and approve verified questions into the Question Bank.
           </p>
         </div>
 
@@ -821,7 +665,7 @@ function StagingAreaContent() {
                       {/* Status */}
                       <td className="px-4 py-3 whitespace-nowrap align-top">
                         <span className="px-2 py-0.5 rounded font-semibold text-[10px] bg-amber-50 text-amber-700 border border-amber-200">
-                          PENDING VERIFICATION
+                          Pending
                         </span>
                       </td>
 
@@ -835,15 +679,6 @@ function StagingAreaContent() {
                             className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
                           >
                             <ExternalLink className="w-3.5 h-3.5" />
-                          </button>
-
-                          {/* Split Question tool */}
-                          <button
-                            onClick={() => handleOpenSplit(q)}
-                            title="Split Combined Bits into Separate Questions"
-                            className="p-1.5 text-slate-500 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition"
-                          >
-                            <GitFork className="w-3.5 h-3.5 text-amber-600" />
                           </button>
 
                           {/* Edit */}
@@ -1063,170 +898,6 @@ function StagingAreaContent() {
         </div>
       )}
 
-      {/* Split Question Modal */}
-      {splittingQuestion && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full border border-slate-200 overflow-hidden max-h-[90vh] flex flex-col">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 flex-shrink-0">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <GitFork className="w-4 h-4 text-amber-600" />
-                  <h3 className="text-sm font-bold text-slate-800">
-                    Split Mixed Question ({splittingQuestion.question_number})
-                  </h3>
-                </div>
-                <p className="text-[11px] text-slate-500">
-                  Separate combined bits like (a), (b), or multiple sub-questions into individual records
-                </p>
-              </div>
-              <button
-                onClick={() => setSplittingQuestion(null)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveSplit} className="p-6 space-y-4 overflow-y-auto flex-1">
-              {/* Original Question Reference Bar */}
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs space-y-1">
-                <div className="flex items-center justify-between text-[11px] text-slate-500 font-semibold">
-                  <span>Original Combined Text:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const detected = autoDetectBits(
-                        splittingQuestion.question_text,
-                        splittingQuestion.question_number,
-                        splittingQuestion.marks,
-                        splittingQuestion.page_number
-                      );
-                      setSplitParts(detected);
-                    }}
-                    className="inline-flex items-center space-x-1 text-blue-600 hover:text-blue-800"
-                  >
-                    <Sparkles className="w-3 h-3" />
-                    <span>Re-Run Auto Detect</span>
-                  </button>
-                </div>
-                <p className="text-slate-700 font-mono text-[11px] line-clamp-3 whitespace-pre-wrap">
-                  {splittingQuestion.question_text}
-                </p>
-              </div>
-
-              {/* Split Parts List */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                    Derived Sub-Questions ({splitParts.length})
-                  </h4>
-                  <button
-                    type="button"
-                    onClick={handleAddSplitPart}
-                    className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition"
-                  >
-                    <Plus className="w-3 h-3" />
-                    <span>Add Another Bit</span>
-                  </button>
-                </div>
-
-                {splitParts.map((part, index) => (
-                  <div
-                    key={index}
-                    className="p-3.5 bg-slate-50/70 border border-slate-200 rounded-xl space-y-3"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-slate-700 flex items-center space-x-1.5">
-                        <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 inline-flex items-center justify-center text-[11px] font-bold">
-                          {index + 1}
-                        </span>
-                        <span>Bit Part #{index + 1}</span>
-                      </span>
-
-                      {splitParts.length > 2 && (
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveSplitPart(index)}
-                          className="text-xs text-red-500 hover:text-red-700 font-medium"
-                        >
-                          Remove Part
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                          Sub-Question No. *
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={part.question_number}
-                          onChange={(e) =>
-                            handleUpdateSplitPart(index, "question_number", e.target.value)
-                          }
-                          placeholder="e.g. 2(a)"
-                          className="w-full px-2.5 py-1 border border-slate-200 rounded-lg text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                          Marks
-                        </label>
-                        <input
-                          type="number"
-                          step="0.5"
-                          value={part.marks}
-                          onChange={(e) =>
-                            handleUpdateSplitPart(index, "marks", e.target.value)
-                          }
-                          placeholder="e.g. 5"
-                          className="w-full px-2.5 py-1 border border-slate-200 rounded-lg text-xs"
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-semibold text-slate-600 mb-1">
-                        Question Text *
-                      </label>
-                      <textarea
-                        required
-                        rows={3}
-                        value={part.question_text}
-                        onChange={(e) =>
-                          handleUpdateSplitPart(index, "question_text", e.target.value)
-                        }
-                        placeholder="Enter text for this sub-part..."
-                        className="w-full px-3 py-1.5 border border-slate-200 rounded-lg text-xs font-mono"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setSplittingQuestion(null)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={splitMutation.isPending}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold shadow-sm"
-                >
-                  {splitMutation.isPending ? "Splitting..." : "Confirm Split"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
       {/* Edit Question Modal */}
       {editingQuestion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-fadeIn">
@@ -1350,36 +1021,21 @@ function StagingAreaContent() {
                 />
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => {
-                    const q = editingQuestion;
-                    setEditingQuestion(null);
-                    handleOpenSplit(q);
-                  }}
-                  className="inline-flex items-center space-x-1 text-xs text-amber-700 hover:text-amber-800 font-semibold"
+                  onClick={() => setEditingQuestion(null)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50"
                 >
-                  <GitFork className="w-3.5 h-3.5" />
-                  <span>Split this Question into Bits</span>
+                  Cancel
                 </button>
-
-                <div className="flex space-x-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditingQuestion(null)}
-                    className="px-4 py-2 border border-slate-200 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-50"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={updateMutation.isPending}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold"
-                  >
-                    {updateMutation.isPending ? "Saving..." : "Save Changes"}
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={updateMutation.isPending}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold"
+                >
+                  {updateMutation.isPending ? "Saving..." : "Save Changes"}
+                </button>
               </div>
             </form>
           </div>
