@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_admin_user
+from app.core.security import get_current_admin_user, require_admin_or_superadmin
 from app.db.session import get_db
 from app.schemas.subject import SubjectCreate, SubjectResponse, SubjectUpdate, TopicResponse
 from app.services.subject_service import (
@@ -47,7 +47,7 @@ def get_all_subjects_admin(
 def create_new_subject(
     payload: SubjectCreate,
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> SubjectResponse:
     """Create a new subject ensuring unique subject code."""
     return create_subject(payload, db)
@@ -59,7 +59,7 @@ def update_existing_subject(
     subject_id: str,
     payload: SubjectUpdate,
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> SubjectResponse:
     """Update subject information or toggles active status."""
     return update_subject(subject_id, payload, db)
@@ -69,7 +69,7 @@ def update_existing_subject(
 def deactivate_existing_subject(
     subject_id: str,
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> SubjectResponse:
     """Deactivate subject to safely preserve historical examinations."""
     return deactivate_subject(subject_id, db)
@@ -79,7 +79,7 @@ def deactivate_existing_subject(
 def delete_existing_subject_permanent(
     subject_id: str,
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> dict[str, Any]:
     """Permanently delete subject if it has no question papers."""
     return delete_subject_permanent(subject_id, db)

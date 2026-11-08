@@ -17,7 +17,7 @@ from fastapi import (
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_admin_user
+from app.core.security import get_current_admin_user, require_admin_or_superadmin
 from app.db.session import get_db
 from app.models.slide import Slide
 from app.models.subject import Subject
@@ -209,7 +209,7 @@ def upload_slide_admin(
     semester: str | None = Form(None),
     academic_year: str | None = Form(None),
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> SlideResponse:
     """Upload a new lecture slide document for a professor and subject."""
     # Resolve subject: if not provided or empty, resolve to first available subject
@@ -318,7 +318,7 @@ def update_slide_admin(
 def delete_slide_admin(
     slide_id: str,
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> dict[str, Any]:
     """Delete a slide and purge its stored document file."""
     slide = db.query(Slide).filter(Slide.id == slide_id).first()

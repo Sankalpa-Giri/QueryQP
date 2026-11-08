@@ -7,7 +7,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.core.cache import invalidate_search_cache
-from app.core.security import get_current_admin_user
+from app.core.security import get_current_admin_user, require_admin_or_superadmin
 from app.db.session import get_db
 from app.models.audit import AuditLog
 from app.models.document import QuestionPaper
@@ -764,7 +764,7 @@ def ai_re_extract_document_questions(
 def delete_question_admin(
     question_id: str,
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> None:
     """Delete question record and log audit trail."""
     q = db.query(Question).filter(Question.id == question_id).first()

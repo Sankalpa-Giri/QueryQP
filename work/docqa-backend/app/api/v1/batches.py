@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_admin_user
+from app.core.security import get_current_admin_user, require_admin_or_superadmin
 from app.db.session import get_db
 from app.schemas.batch import BatchCreate, BatchDetailResponse, BatchResponse
 from app.services.batch_service import (
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/admin/batches", tags=["admin-batches"])
 def create_new_batch(
     payload: BatchCreate | None = None,
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> BatchResponse:
     """Create a new batch container to which examination papers can be attached."""
     batch = create_batch(admin["id"], db)
@@ -55,7 +55,7 @@ def get_batch(
 def delete_batch_endpoint(
     batch_id: str,
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> dict[str, str]:
     """Permanently delete a batch and cascade delete all its documents, questions, and physical files."""
     delete_batch(batch_id, db, admin["id"])
@@ -73,7 +73,7 @@ def upload_documents_to_batch(
     parser_type: str | None = Form(None),
     overwrite: bool = Form(True),
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> BatchDetailResponse:
     """Upload multiple examination papers into an existing batch."""
     return process_bulk_upload(
@@ -95,7 +95,7 @@ def trigger_batch_processing_endpoint(
     batch_id: str,
     parser_type: str | None = None,
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> BatchDetailResponse:
     """Explicitly trigger background processing for all eligible documents in a batch."""
     return trigger_batch_processing(batch_id, db, parser_type=parser_type)

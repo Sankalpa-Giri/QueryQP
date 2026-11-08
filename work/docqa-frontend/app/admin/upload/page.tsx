@@ -7,7 +7,9 @@ import {
   fetchSubjects,
   uploadBulkPapers,
   Subject,
+  getAdminUser,
 } from "../../../lib/api";
+import Link from "next/link";
 import {
   UploadCloud,
   FileText,
@@ -33,10 +35,37 @@ export default function QuestionPaperUploadPage() {
   const [uploading, setUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const currentUser = getAdminUser();
+  const isReviewer = currentUser?.role?.toLowerCase() === "reviewer";
+
   const { data: subjects = [] } = useQuery<Subject[]>({
     queryKey: ["subjects"],
     queryFn: fetchSubjects,
   });
+
+  if (isReviewer) {
+    return (
+      <div className="max-w-xl mx-auto my-16 bg-white p-8 rounded-2xl border border-amber-200 shadow-sm text-center space-y-4">
+        <div className="w-14 h-14 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mx-auto">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-900">Reviewer Restricted Page</h2>
+        <p className="text-xs text-slate-600 leading-relaxed max-w-md mx-auto">
+          Question paper uploading and batch ingestion is restricted to <strong>Administrator</strong> and <strong>Superadmin</strong> roles.
+          As a <strong>Reviewer</strong>, your primary workflow is verifying, formatting with AI, and approving extracted questions in the Staging Area.
+        </p>
+        <div className="pt-2">
+          <Link
+            href="/admin/staging"
+            className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow transition"
+          >
+            <span>Proceed to Staging Area</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   // File handler
   const handleFileSelect = (files: FileList | File[]) => {

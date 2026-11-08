@@ -94,7 +94,7 @@ def get_current_admin_user(
     return {
         "id": db_user.id if db_user else sub,
         "username": db_user.username if db_user else username,
-        "role": db_user.role if db_user else payload.get("role", "admin"),
+        "role": (db_user.role if db_user else payload.get("role", "admin")).strip().lower(),
         "full_name": db_user.full_name if db_user else payload.get("full_name"),
         "must_change_password": (
             db_user.must_change_password
@@ -102,3 +102,28 @@ def get_current_admin_user(
             else payload.get("must_change_password", False)
         ),
     }
+
+
+def require_roles(*allowed_roles: str):
+    """Enforce Role-Based Access Control (RBAC) on API endpoints."""
+    normalized_allowed = [r.strip().lower() for r in allowed_roles]
+
+    def role_checker(
+        current_user: dict[str, Any] = Depends(get_current_admin_user),
+    ) -> dict[str, Any]:
+        user_role = str(current_user.get("role", "admin")).strip().lower()
+        if user_role not in normalized_allowed:
+            allowed_str = ", ".join([r.upper() for r in allowed_roles])
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Access denied: This operation requires {allowed_str} privilege. Your current role is '{user_role.upper()}'.",
+            )
+        return current_user
+
+    return role_checker
+
+
+# Reusable role dependencies
+require_superadmin = require_roles("superadmin")
+require_admin_or_superadmin = require_roles("superadmin", "admin")
+require_any_admin = get_current_admin_user  # superadmin, admin, or reviewer

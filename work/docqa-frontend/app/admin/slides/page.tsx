@@ -11,6 +11,7 @@ import {
   SlideItem,
   Subject,
   getSlideDownloadUrl,
+  getAdminUser,
 } from "../../../lib/api";
 import { SlideViewerModal } from "../../../components/SlideViewerModal";
 import {
@@ -43,6 +44,9 @@ export default function AdminSlidesPage() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [editingSlide, setEditingSlide] = useState<SlideItem | null>(null);
   const [previewSlide, setPreviewSlide] = useState<SlideItem | null>(null);
+
+  const currentUser = getAdminUser();
+  const isReviewer = currentUser?.role?.toLowerCase() === "reviewer";
 
   // Form state
   const [formSubjectId, setFormSubjectId] = useState("");
@@ -213,13 +217,19 @@ export default function AdminSlidesPage() {
             Upload, categorize by topic, and manage university lecture presentations and study slides.
           </p>
         </div>
-        <button
-          onClick={handleOpenUpload}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Upload New Slides</span>
-        </button>
+        {!isReviewer ? (
+          <button
+            onClick={handleOpenUpload}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl shadow-sm transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Upload New Slides</span>
+          </button>
+        ) : (
+          <div className="px-3.5 py-2 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-800 text-xs font-medium">
+            Reviewer Mode: View-Only Slides
+          </div>
+        )}
       </div>
 
       {/* Messages */}
@@ -375,20 +385,24 @@ export default function AdminSlidesPage() {
                         >
                           <Download className="w-4 h-4" />
                         </a>
-                        <button
-                          onClick={() => handleOpenEdit(s)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition"
-                          title="Edit Details"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(s)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
-                          title="Delete Slide"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {!isReviewer && (
+                          <>
+                            <button
+                              onClick={() => handleOpenEdit(s)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 transition"
+                              title="Edit Details"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(s)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition"
+                              title="Delete Slide"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>

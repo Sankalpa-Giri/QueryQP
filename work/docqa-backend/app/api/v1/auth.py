@@ -3,7 +3,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_admin_user
+from app.core.security import get_current_admin_user, require_superadmin
 from app.db.session import get_db
 from app.models.user import AdminUser
 from app.schemas.auth import (
@@ -97,7 +97,7 @@ def get_current_admin(
 @router.get("/admin/users", response_model=list[AdminUserResponse])
 def get_admin_users(
     db: Session = Depends(get_db),
-    current_user: dict[str, Any] = Depends(get_current_admin_user),
+    current_user: dict[str, Any] = Depends(require_superadmin),
 ) -> list[AdminUserResponse]:
     """List all registered administrators in the institution."""
     admins = list_admin_users(db)
@@ -121,7 +121,7 @@ def get_admin_users(
 def create_admin_account(
     payload: AdminCreateRequest,
     db: Session = Depends(get_db),
-    current_user: dict[str, Any] = Depends(get_current_admin_user),
+    current_user: dict[str, Any] = Depends(require_superadmin),
 ) -> AdminUserResponse:
     """Create a new administrator account with an assigned ID and temporary default password."""
     new_admin = create_admin_user(payload, current_user, db)
@@ -143,7 +143,7 @@ def update_admin_account(
     user_id: str,
     payload: AdminUpdateRequest,
     db: Session = Depends(get_db),
-    current_user: dict[str, Any] = Depends(get_current_admin_user),
+    current_user: dict[str, Any] = Depends(require_superadmin),
 ) -> AdminUserResponse:
     """Update an administrator's role, active status, profile, or reset default password."""
     updated = update_admin_user(user_id, payload, current_user, db)
@@ -164,7 +164,7 @@ def update_admin_account(
 def delete_admin_account(
     user_id: str,
     db: Session = Depends(get_db),
-    current_user: dict[str, Any] = Depends(get_current_admin_user),
+    current_user: dict[str, Any] = Depends(require_superadmin),
 ) -> dict[str, Any]:
     """Delete an administrator account."""
     return delete_admin_user(user_id, current_user, db)

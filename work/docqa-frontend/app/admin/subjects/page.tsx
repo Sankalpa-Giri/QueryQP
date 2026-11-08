@@ -8,6 +8,7 @@ import {
   updateSubject,
   deleteSubjectPermanent,
   Subject,
+  getAdminUser,
 } from "../../../lib/api";
 import {
   BookMarked,
@@ -34,6 +35,9 @@ export default function SubjectManagementPage() {
   const [description, setDescription] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const currentUser = getAdminUser();
+  const isReviewer = currentUser?.role?.toLowerCase() === "reviewer";
 
   const { data: subjects = [], isLoading } = useQuery<Subject[]>({
     queryKey: ["admin-subjects"],
@@ -136,13 +140,19 @@ export default function SubjectManagementPage() {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAdd}
-          className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Subject</span>
-        </button>
+        {!isReviewer ? (
+          <button
+            onClick={handleOpenAdd}
+            className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-sm transition"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add New Subject</span>
+          </button>
+        ) : (
+          <div className="px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
+            Reviewer Mode: Read-Only Curriculum
+          </div>
+        )}
       </div>
 
       {/* Success Notification Banner */}
@@ -222,39 +232,43 @@ export default function SubjectManagementPage() {
                       </span>
                     </td>
                     <td className="px-6 py-3 text-right whitespace-nowrap">
-                      <div className="flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleOpenEdit(s)}
-                          className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
-                          title="Edit Subject Details"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() =>
-                            toggleStatusMutation.mutate({ id: s.id, is_active: !s.is_active })
-                          }
-                          className={`p-1.5 rounded-lg transition ${
-                            s.is_active
-                              ? "text-slate-400 hover:text-amber-600 hover:bg-amber-50"
-                              : "text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
-                          }`}
-                          title={s.is_active ? "Deactivate Subject" : "Activate Subject"}
-                        >
-                          <Power className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            if (confirm(`Permanently delete subject "${s.name}" (${s.code})?`)) {
-                              deleteSubjectMutation.mutate(s.id);
+                      {!isReviewer ? (
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            onClick={() => handleOpenEdit(s)}
+                            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
+                            title="Edit Subject Details"
+                          >
+                            <Edit className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() =>
+                              toggleStatusMutation.mutate({ id: s.id, is_active: !s.is_active })
                             }
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                          title="Delete Subject"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                            className={`p-1.5 rounded-lg transition ${
+                              s.is_active
+                                ? "text-slate-400 hover:text-amber-600 hover:bg-amber-50"
+                                : "text-slate-400 hover:text-emerald-600 hover:bg-emerald-50"
+                            }`}
+                            title={s.is_active ? "Deactivate Subject" : "Activate Subject"}
+                          >
+                            <Power className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Permanently delete subject "${s.name}" (${s.code})?`)) {
+                                deleteSubjectMutation.mutate(s.id);
+                              }
+                            }}
+                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                            title="Delete Subject"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-slate-400 italic">View Only</span>
+                      )}
                     </td>
                   </tr>
                 ))}

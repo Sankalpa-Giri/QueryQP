@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Resp
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.core.security import get_current_admin_user
+from app.core.security import get_current_admin_user, require_admin_or_superadmin
 from app.db.session import get_db
 from app.models.audit import AuditLog
 from app.models.document import QuestionPaper
@@ -34,7 +34,7 @@ def bulk_upload_papers(
     auto_process: bool = Form(True),
     overwrite: bool = Form(True),
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> BatchDetailResponse:
     """Direct bulk upload endpoint creating a new batch and queuing papers for LlamaParse extraction."""
     return process_bulk_upload(
@@ -200,7 +200,7 @@ def trigger_document_processing_endpoint(
     document_id: str,
     parser_type: str | None = None,
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> DocumentStatusResponse:
     """Explicitly trigger document processing pipeline after administrative inspection."""
     return retry_document_processing(document_id, parser_type, db, admin)
@@ -210,7 +210,7 @@ def trigger_document_processing_endpoint(
 def delete_document_endpoint(
     document_id: str,
     db: Session = Depends(get_db),
-    admin: dict[str, Any] = Depends(get_current_admin_user),
+    admin: dict[str, Any] = Depends(require_admin_or_superadmin),
 ) -> dict[str, str]:
     """Permanently delete a question paper document and cascade delete its questions, jobs, and storage files."""
     doc = db.query(QuestionPaper).filter(QuestionPaper.id == document_id).first()

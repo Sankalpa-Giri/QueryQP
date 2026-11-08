@@ -149,6 +149,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return <>{children}</>;
   }
 
+  const userRole = (currentUser?.role || "admin").toLowerCase();
+
+  const filteredNavItems = NAV_ITEMS.filter((item) => {
+    if (item.href === "/admin/users") {
+      return userRole === "superadmin";
+    }
+    if (item.href === "/admin/upload" || item.href === "/admin/batches") {
+      return userRole === "superadmin" || userRole === "admin";
+    }
+    return true;
+  });
+
   if (!mounted) {
     return null;
   }
@@ -192,7 +204,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Links */}
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {NAV_ITEMS.map((item) => {
+          {filteredNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
             return (
@@ -225,8 +237,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <div className="text-xs font-bold text-white truncate leading-tight">
                     @{currentUser.username}
                   </div>
-                  <div className="text-[10px] text-slate-400 truncate">
-                    {currentUser.full_name || currentUser.role.toUpperCase()}
+                  <div className="flex items-center space-x-1.5 mt-0.5">
+                    <span
+                      className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider uppercase ${
+                        userRole === "superadmin"
+                          ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                          : userRole === "reviewer"
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                          : "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                      }`}
+                    >
+                      {userRole}
+                    </span>
+                    {currentUser.full_name && (
+                      <span className="text-[10px] text-slate-400 truncate">
+                        {currentUser.full_name}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>

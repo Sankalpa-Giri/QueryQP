@@ -11,6 +11,7 @@ import {
   deleteQuestion,
   Question,
   Subject,
+  getAdminUser,
 } from "../../../lib/api";
 import { SourceViewerModal } from "../../../components/SourceViewerModal";
 import {
@@ -41,6 +42,9 @@ function QuestionBankContent() {
   const [examYear, setExamYear] = useState(searchParams.get("exam_year") || "");
   const [examType, setExamType] = useState(searchParams.get("exam_type") || "");
   const [searchText, setSearchText] = useState("");
+
+  const currentUser = getAdminUser();
+  const canDelete = currentUser?.role?.toLowerCase() === "superadmin" || currentUser?.role?.toLowerCase() === "admin";
 
   // Inspect source modal
   const [inspectQuestionId, setInspectQuestionId] = useState<string | null>(null);
@@ -348,14 +352,16 @@ function QuestionBankContent() {
                             <Edit className="w-3.5 h-3.5" />
                           </button>
 
-                          {/* Delete button */}
-                          <button
-                            onClick={() => handleDeleteConfirm(q)}
-                            title="Delete Question"
-                            className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-lg transition"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          {/* Delete button (Superadmin & Admin only) */}
+                          {canDelete && (
+                            <button
+                              onClick={() => handleDeleteConfirm(q)}
+                              title="Delete Question"
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-slate-100 rounded-lg transition"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
