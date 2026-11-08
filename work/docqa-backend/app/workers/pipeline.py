@@ -92,6 +92,28 @@ def _execute_document_pipeline(document_id: str, db: Session, parser_type: str |
         extracted_questions = segment_questions_from_parsed(parsed_result)
         logger.info("Segmenter extracted %d questions for document %s", len(extracted_questions), doc.id)
 
+        # Fail-safe: Ensure document always has at least one staged question for review
+        if not extracted_questions:
+            logger.warning(
+                "No questions segmented for document %s (%s); creating fallback question for review in Staging Area",
+                doc.id,
+                doc.filename,
+            )
+            fallback_text = (parsed_result.markdown or "").strip()
+            if not fallback_text:
+                fallback_text = f"Question Paper: {doc.filename}\n\nAutomatic segmentation could not identify individual questions. Please review this document in the Staging Area to transcribe or split questions."
+            extracted_questions = [
+                ExtractedQuestion(
+                    question_number="Q1",
+                    question_text=fallback_text,
+                    normalized_text=fallback_text[:200],
+                    page_number=1,
+                    page_end=max(1, parsed_result.page_count),
+                    marks=10.0,
+                    bbox=[50.0, 50.0, 545.0, 792.0],
+                )
+            ]
+
         # Idempotent cleanup: Remove existing questions and associations if reprocessing
         existing_q_ids = [q[0] for q in db.query(Question.id).filter(Question.document_id == doc.id).all()]
         if existing_q_ids:

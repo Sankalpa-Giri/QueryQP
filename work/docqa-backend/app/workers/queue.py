@@ -12,7 +12,7 @@ _executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="doc-worker-")
 
 def dispatch_document_processing(document_id: str, parser_type: str | None = None) -> None:
     """Dispatch document processing to Celery if configured, or background threadpool."""
-    use_celery = os.environ.get("USE_CELERY", "false").lower() == "true"
+    use_celery = os.environ.get("USE_CELERY", "true").lower() != "false"
 
     if use_celery:
         try:

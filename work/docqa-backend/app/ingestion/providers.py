@@ -88,10 +88,15 @@ class PyMuPDFProvider(BaseDocumentParser):
             ]
             total_chars = sum(len(b[4].strip()) for b in valid_text_blocks)
 
-            # If page has very little readable text, it is likely a scanned image -> trigger OCR
-            if total_chars < 30:
+            # Check if page requires OCR (scanned PDF or images with scarce embedded text)
+            has_images = len(page.get_images()) > 0
+            needs_ocr = (total_chars < 120) or (has_images and total_chars < 300)
+
+            if needs_ocr:
                 tess_dir = get_tessdata_path()
                 ocr_succeeded = False
+                best_ocr_blocks: list[Any] = []
+                best_ocr_chars = 0
 
                 # Strategy 1: PyMuPDF get_textpage_ocr
                 try:
@@ -106,13 +111,14 @@ class PyMuPDFProvider(BaseDocumentParser):
                     ]
                     ocr_chars = sum(len(b[4].strip()) for b in ocr_valid)
                     if ocr_chars >= 20:
-                        raw_blocks = ocr_blocks
+                        best_ocr_blocks = ocr_blocks
+                        best_ocr_chars = ocr_chars
                         ocr_succeeded = True
                         logger.info("PyMuPDF OCR successfully extracted %d characters on page %d", ocr_chars, p_idx)
                 except Exception as e:
                     logger.debug("PyMuPDF get_textpage_ocr failed on page %d: %s", p_idx, e)
 
-                # Strategy 2: Fallback to pytesseract or tesseract CLI on page pixmap
+                # Strategy 2: Fallback to pytesseract on page pixmap
                 if not ocr_succeeded:
                     try:
                         import pytesseract
@@ -122,10 +128,10 @@ class PyMuPDFProvider(BaseDocumentParser):
                         img = Image.open(io.BytesIO(pix.tobytes("png")))
                         ocr_text = pytesseract.image_to_string(img, lang="eng").strip()
                         if len(ocr_text) >= 20:
-                            # Construct synthetic text block spanning the printable page area
-                            raw_blocks = [
+                            best_ocr_blocks = [
                                 (50.0, 50.0, w - 50.0, h - 50.0, ocr_text, 0, 0)
                             ]
+                            best_ocr_chars = len(ocr_text)
                             ocr_succeeded = True
                             logger.info("pytesseract OCR extracted %d characters on page %d", len(ocr_text), p_idx)
                     except Exception as e:
@@ -147,12 +153,25 @@ class PyMuPDFProvider(BaseDocumentParser):
                             os.remove(temp_png)
                         cli_text = proc.stdout.strip()
                         if len(cli_text) >= 20:
-                            raw_blocks = [
+                            best_ocr_blocks = [
                                 (50.0, 50.0, w - 50.0, h - 50.0, cli_text, 0, 0)
                             ]
+                            best_ocr_chars = len(cli_text)
                             logger.info("tesseract CLI extracted %d characters on page %d", len(cli_text), p_idx)
                     except Exception as e:
                         logger.debug("tesseract CLI fallback failed on page %d: %s", p_idx, e)
+
+                # If OCR produced text and it's richer than existing embedded text, use OCR blocks
+                if best_ocr_blocks and (best_ocr_chars > total_chars or not valid_text_blocks):
+                    raw_blocks = best_ocr_blocks
+
+            # Fallback to plain page.get_text("text") if block extraction yielded nothing
+            if not [b for b in raw_blocks if len(b) > 4 and isinstance(b[4], str) and b[4].strip()]:
+                raw_page_text = page.get_text("text").strip()
+                if len(raw_page_text) >= 15:
+                    raw_blocks = [
+                        (50.0, 50.0, w - 50.0, h - 50.0, raw_page_text, 0, 0)
+                    ]
 
             # Human visual reading order (top-to-bottom, left-to-right)
             text_blocks_to_sort = [
@@ -196,6 +215,19 @@ class PyMuPDFProvider(BaseDocumentParser):
                 if el_type not in ("header", "footer"):
                     page_md_lines.append(cleaned)
 
+            if not page_elements:
+                fallback_label = f"Question Paper Page {p_idx}"
+                page_elements.append(
+                    ParsedElement(
+                        id=f"page-{p_idx}-el-1",
+                        type="paragraph",
+                        text=fallback_label,
+                        bbox=[50.0, 50.0, w - 50.0, h - 50.0],
+                        page_number=p_idx,
+                    )
+                )
+                page_md_lines.append(fallback_label)
+
             page_md = "\n\n".join(page_md_lines)
             pages.append(
                 ParsedPage(
@@ -219,19 +251,72 @@ class PyMuPDFProvider(BaseDocumentParser):
         )
 
 
+def is_valid_llama_key(key: str | None) -> bool:
+    """Validate that the provided LlamaCloud key is genuine and non-placeholder."""
+    if not key:
+        return False
+    k = key.strip()
+    return len(k) >= 25 and not k.startswith("llx-your") and "placeholder" not in k.lower()
+
+
 class LlamaParseProvider(BaseDocumentParser):
-    """Cloud-based parser using LlamaCloud v2 Parse API for complex layouts, tables, and scans."""
+    """Cloud-based parser using LlamaCloud / LlamaParse API with fail-safe local fallback."""
 
     def __init__(self, api_key: str | None = None):
         self.api_key = api_key or os.environ.get("LLAMA_CLOUD_API_KEY", "")
 
     def parse(self, path: Path) -> ParsedDocumentResult:
-        if not self.api_key:
-            logger.warning("LLAMA_CLOUD_API_KEY is not set. Falling back to PyMuPDFProvider.")
+        if not is_valid_llama_key(self.api_key):
+            logger.warning("LLAMA_CLOUD_API_KEY is not configured or placeholder. Falling back to PyMuPDFProvider.")
             return PyMuPDFProvider().parse(path)
 
         try:
-            import time
+            # First preference: official llama_parse SDK
+            try:
+                from llama_parse import LlamaParse
+
+                parser = LlamaParse(
+                    api_key=self.api_key,
+                    result_type="markdown",
+                    split_by_page=True,
+                    verbose=False,
+                )
+                docs = parser.load_data(str(path))
+                if docs:
+                    pages: list[ParsedPage] = []
+                    full_md_parts: list[str] = []
+                    for idx, doc_item in enumerate(docs, start=1):
+                        p_text = doc_item.text or ""
+                        elements: list[ParsedElement] = [
+                            ParsedElement(
+                                id=f"page-{idx}-el-1",
+                                type="paragraph",
+                                text=p_text,
+                                bbox=[50.0, 50.0, 545.0, 792.0],
+                                page_number=idx,
+                            )
+                        ]
+                        pages.append(
+                            ParsedPage(
+                                page_number=idx,
+                                width=595.0,
+                                height=842.0,
+                                elements=elements,
+                                markdown=p_text,
+                            )
+                        )
+                        full_md_parts.append(f"<!-- Page {idx} -->\n" + p_text)
+                    return ParsedDocumentResult(
+                        page_count=len(pages),
+                        markdown="\n\n---\n\n".join(full_md_parts),
+                        pages=pages,
+                        parser_name="llama_parse",
+                        parser_version="1.0.0",
+                    )
+            except ImportError:
+                pass
+
+            # Fallback to llama_cloud v2 client if installed
             from llama_cloud.client import LlamaCloud
             import llama_cloud.types as lct
 
@@ -251,9 +336,10 @@ class LlamaParseProvider(BaseDocumentParser):
                 output_options=output_options,
             )
 
-            # Poll for completion with timeout
+            # Poll for completion with bounded timeout (max 30s)
             parse_result = None
-            for _ in range(60):
+            import time
+            for _ in range(15):
                 time.sleep(2)
                 res = client.v_2.get_parse_job(job_id=job.id, expand=["markdown", "items"])
                 status_str = res.job.status.value if hasattr(res.job.status, "value") else str(res.job.status)
@@ -299,15 +385,14 @@ class LlamaParseProvider(BaseDocumentParser):
                 parser_version="2.0.0",
             )
         except Exception as e:
-            logger.error("LlamaCloud v2 execution failed: %s. Falling back to PyMuPDF.", e)
-            if path.suffix.lower() == ".pdf":
-                return PyMuPDFProvider().parse(path)
-            raise
+            logger.warning("LlamaCloud execution failed (%s). Falling back seamlessly to PyMuPDFProvider.", e)
+            return PyMuPDFProvider().parse(path)
 
 
 def get_document_parser(parser_type: str | None = None) -> BaseDocumentParser:
     """Provider factory selecting parser based on configuration or explicit request."""
     chosen = (parser_type or settings.DOCUMENT_PARSER).lower().replace("-", "_")
-    if chosen in ("llama_parse", "llamaparse", "auto") and settings.LLAMA_CLOUD_API_KEY:
-        return LlamaParseProvider(api_key=settings.LLAMA_CLOUD_API_KEY)
+    key = (settings.LLAMA_CLOUD_API_KEY or "").strip()
+    if chosen in ("llama_parse", "llamaparse") and is_valid_llama_key(key):
+        return LlamaParseProvider(api_key=key)
     return PyMuPDFProvider()

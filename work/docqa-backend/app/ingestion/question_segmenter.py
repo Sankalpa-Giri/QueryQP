@@ -16,6 +16,7 @@ MAIN_Q_REGEX = re.compile(
     r"|(\d{1,2})\s*[\(\[]([a-z]|[ivx]+)[\)\]\\\/\:]?"
     r"|(?:\b([IVXLCDM]{1,4})\b)\s*[\.\:\-\)]"
     r"|(\b[1-9]\b)\s*$"
+    r"|(\d{1,2})\s+(?=[A-Z])"
     r")",
     re.IGNORECASE,
 )
@@ -232,9 +233,11 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
                 continue
             # Skip university exam banner metadata and generic instructions
             if any(hdr in s.lower() for hdr in [
-                "autumn end semester", "spring end semester", "kiit-du", "full marks:",
-                "time:", "qn. set code", "branch:", "programme:", "semester:"
-            ]):
+                "autumn end semester", "spring end semester", "mid semester", "end semester",
+                "kiit-du", "full marks", "time:", "qn. set code", "branch:", "programme:", "semester:",
+                "school of", "department of", "roll no", "regn no", "registration no", "course code",
+                "subject code", "maximum marks"
+            ]) or s.lower().startswith(("subject:", "course:", "sub:", "branch:", "programme:")):
                 continue
             if any(instr in s.lower() for instr in [
                 "attempt any", "answer all", "answer any", "question paper consists",
@@ -287,6 +290,15 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
             else:
                 q_num = f"Q{current_main_num}"
         else:
+            is_likely_q = (
+                any(any(v in l.lower() for v in QUESTION_VERBS) or "?" in l for l in filtered_lines)
+                or extract_marks(full_text) is not None
+            )
+            if not is_likely_q:
+                current_lines = []
+                current_boxes = []
+                current_marks = None
+                return
             q_num = f"Q{auto_q_idx}"
             auto_q_idx += 1
 
@@ -491,6 +503,26 @@ def segment_questions_from_parsed(result: ParsedDocumentResult) -> list[Extracte
                     )
                 )
                 auto_idx += 1
+
+    # Fallback 4: Guarantee at least one valid question is extracted per page
+    if not questions:
+        auto_idx = 1
+        for p in result.pages:
+            p_text = (p.markdown or "").strip()
+            if not p_text:
+                p_text = f"Question Paper (Page {p.page_number}) - Please review and verify questions in the Staging Area."
+            questions.append(
+                ExtractedQuestion(
+                    question_number=f"Q{auto_idx}",
+                    question_text=p_text,
+                    normalized_text=normalize_query_text(p_text),
+                    page_number=p.page_number,
+                    page_end=p.page_number,
+                    marks=10.0,
+                    bbox=[50.0, 50.0, p.width - 50.0, p.height - 50.0],
+                )
+            )
+            auto_idx += 1
 
     return split_inline_subquestions(questions)
 

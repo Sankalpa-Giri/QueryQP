@@ -33,14 +33,14 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
+  { name: "Admin Accounts", href: "/admin/users", icon: Users },
   { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
   { name: "Upload Paper", href: "/admin/upload", icon: UploadCloud },
-  { name: "Slides Manager", href: "/admin/slides", icon: Presentation },
   { name: "Batch Monitor", href: "/admin/batches", icon: Layers },
   { name: "Staging Area", href: "/admin/staging", icon: ClipboardCheck },
   { name: "Question Bank", href: "/admin/questions", icon: HelpCircle },
+  { name: "Slides Manager", href: "/admin/slides", icon: Presentation },
   { name: "Subjects", href: "/admin/subjects", icon: BookMarked },
-  { name: "Admin Accounts", href: "/admin/users", icon: Users },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

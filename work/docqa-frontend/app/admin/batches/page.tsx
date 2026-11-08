@@ -368,15 +368,13 @@ export default function BatchesMonitorPage() {
                               <span>Re-parse</span>
                             </button>
 
-                            {doc.question_count > 0 && (
-                              <Link
-                                href={`/admin/staging?document_id=${doc.id}`}
-                                className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg font-semibold transition"
-                              >
-                                <span>Review in Staging</span>
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </Link>
-                            )}
+                            <Link
+                              href={`/admin/staging?document_id=${doc.id}`}
+                              className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg font-semibold transition"
+                            >
+                              <span>Review in Staging</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </Link>
 
                             <button
                               onClick={() => {
