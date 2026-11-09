@@ -29,6 +29,7 @@ export function SourceViewerModal({ questionId, onClose }: SourceViewerModalProp
 
   // Viewer state
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [fitWidth, setFitWidth] = useState<boolean>(true);
   const [zoomScale, setZoomScale] = useState<number>(1);
   const [highDpi, setHighDpi] = useState<boolean>(false);
   const [imageLoading, setImageLoading] = useState<boolean>(false);
@@ -40,6 +41,7 @@ export function SourceViewerModal({ questionId, onClose }: SourceViewerModalProp
     }
     setLoading(true);
     setError(null);
+    setFitWidth(true);
     setZoomScale(1);
     fetchQuestionSource(questionId)
       .then((data) => {
@@ -58,13 +60,28 @@ export function SourceViewerModal({ questionId, onClose }: SourceViewerModalProp
     ? `${API_BASE}/api/v1/documents/${sourceData.document_id}/pages/${currentPage}/image?dpi=${dpiValue}`
     : "";
 
-  const handleZoomIn = () => setZoomScale((prev) => Math.min(prev + 0.25, 2.5));
-  const handleZoomOut = () => setZoomScale((prev) => Math.max(prev - 0.25, 0.5));
-  const handleZoomReset = () => setZoomScale(1);
+  const handleZoomIn = () => {
+    setFitWidth(false);
+    setZoomScale((prev) => Math.min((fitWidth ? 1.0 : prev) + 0.25, 3.0));
+  };
+
+  const handleZoomOut = () => {
+    if (zoomScale <= 1.25) {
+      setFitWidth(true);
+      setZoomScale(1);
+    } else {
+      setZoomScale((prev) => Math.max(prev - 0.25, 0.5));
+    }
+  };
+
+  const handleZoomReset = () => {
+    setFitWidth(true);
+    setZoomScale(1);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="relative flex flex-col w-full max-w-5xl max-h-[92vh] bg-surface rounded-2xl shadow-2xl overflow-hidden border border-line">
+      <div className="relative flex flex-col w-full max-w-6xl max-h-[94vh] bg-surface rounded-2xl shadow-2xl overflow-hidden border border-line">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-3.5 border-b border-line-soft bg-ground flex-shrink-0">
           <div className="flex items-center space-x-3">
@@ -170,8 +187,23 @@ export function SourceViewerModal({ questionId, onClose }: SourceViewerModalProp
                     >
                       <ZoomOut className="w-3.5 h-3.5" />
                     </button>
+                    <button
+                      onClick={() => {
+                        const nextFit = !fitWidth;
+                        setFitWidth(nextFit);
+                        if (nextFit) setZoomScale(1);
+                      }}
+                      className={`px-2 py-0.5 rounded text-[11px] font-semibold transition ${
+                        fitWidth
+                          ? "bg-primary text-ground shadow-2xs"
+                          : "text-ink-soft hover:bg-lift"
+                      }`}
+                      title="Fit entire page to width"
+                    >
+                      Fit Width
+                    </button>
                     <span className="text-[11px] font-mono text-ink-soft px-1.5 min-w-[3rem] text-center">
-                      {Math.round(zoomScale * 100)}%
+                      {fitWidth ? "Fit" : `${Math.round(zoomScale * 100)}%`}
                     </span>
                     <button
                       onClick={handleZoomIn}
@@ -183,7 +215,7 @@ export function SourceViewerModal({ questionId, onClose }: SourceViewerModalProp
                     <button
                       onClick={handleZoomReset}
                       className="p-1 text-ink-faint hover:text-ink-soft rounded hover:bg-lift transition"
-                      title="Reset Zoom"
+                      title="Reset to Fit Width"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
                     </button>
@@ -220,7 +252,7 @@ export function SourceViewerModal({ questionId, onClose }: SourceViewerModalProp
               </div>
 
               {/* Rendered Page Image with Pan / Zoom Canvas */}
-              <div className="relative border border-line-strong rounded-xl overflow-auto bg-black/5 max-h-[550px] min-h-[350px] flex items-start justify-center p-4">
+              <div className="relative border border-line-strong rounded-xl overflow-auto bg-black/10 max-h-[62vh] min-h-[400px] p-4 text-center">
                 {imageLoading && (
                   <div className="absolute inset-0 bg-surface/70 flex items-center justify-center z-10 backdrop-blur-xs">
                     <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -228,11 +260,11 @@ export function SourceViewerModal({ questionId, onClose }: SourceViewerModalProp
                 )}
                 <div
                   style={{
-                    transform: `scale(${zoomScale})`,
-                    transformOrigin: "top center",
-                    transition: "transform 0.15s ease-out",
+                    width: fitWidth ? "100%" : `${Math.round(zoomScale * 100)}%`,
+                    maxWidth: fitWidth ? "100%" : "none",
+                    transition: "width 0.15s ease-out",
                   }}
-                  className="inline-block shadow-lg rounded bg-surface overflow-hidden"
+                  className="inline-block shadow-lg rounded bg-surface overflow-hidden text-left"
                 >
                   <img
                     key={currentImageUrl}
@@ -240,7 +272,7 @@ export function SourceViewerModal({ questionId, onClose }: SourceViewerModalProp
                     alt={`Exam Paper Page ${currentPage}`}
                     onLoad={() => setImageLoading(false)}
                     onLoadStart={() => setImageLoading(true)}
-                    className="max-w-none w-auto h-auto block select-none"
+                    className="w-full h-auto block select-none"
                     onError={(e) => {
                       setImageLoading(false);
                       (e.target as HTMLElement).style.display = "none";

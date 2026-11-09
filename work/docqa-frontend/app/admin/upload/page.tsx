@@ -136,26 +136,6 @@ export default function QuestionPaperUploadPage() {
 
       {/* Upload Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Automated AI Extraction Pipeline Banner */}
-        <div className="p-4 bg-raised border border-line-strong rounded-2xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-primary text-ground flex items-center justify-center flex-shrink-0">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <span className="font-semibold text-ink block text-xs">
-                Vision & Multimodal AI Structured Extraction Active
-              </span>
-              <span className="text-[11px] text-ink-muted">
-                Automatically extracts questions bit-wise (e.g. 7a, 7b), standardizes LaTeX math, and auto-tags syllabus topics into Staging.
-              </span>
-            </div>
-          </div>
-          <span className="px-3 py-1 bg-surface border border-line-strong text-primary font-semibold rounded-xl text-xs shadow-2xs shrink-0 flex items-center gap-1.5 self-start sm:self-auto">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            AI Enabled
-          </span>
-        </div>
 
         <div className="bg-surface p-6 rounded-2xl border border-line space-y-5">
           <h2 className="text-sm font-semibold text-ink flex items-center space-x-2 border-b border-line-soft pb-3">
