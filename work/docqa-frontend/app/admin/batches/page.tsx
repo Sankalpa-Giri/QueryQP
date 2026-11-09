@@ -106,8 +106,8 @@ export default function BatchesMonitorPage() {
       {/* Page Title */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Batch Processing Monitor</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h1 className="text-2xl font-semibold text-ink tracking-tight">Batch Processing Monitor</h1>
+          <p className="text-xs text-ink-muted mt-0.5">
             Real-time pipeline monitoring for document parsing, question segmentation, and indexing
           </p>
         </div>
@@ -116,7 +116,7 @@ export default function BatchesMonitorPage() {
           {emptyBatches.length > 0 && (
             <button
               onClick={handleClearEmptyBatches}
-              className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 rounded-lg text-xs font-semibold shadow-sm transition"
+              className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/15 text-red-300 border border-red-500/25 rounded-lg text-xs font-semibold transition"
             >
               <Trash2 className="w-3.5 h-3.5" />
               <span>Clear {emptyBatches.length} Empty Batches</span>
@@ -127,28 +127,28 @@ export default function BatchesMonitorPage() {
               queryClient.invalidateQueries({ queryKey: ["admin-batches"] });
               queryClient.invalidateQueries({ queryKey: ["admin-batch-detail"] });
             }}
-            className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 rounded-lg text-xs font-semibold text-slate-700 shadow-sm transition"
+            className="inline-flex items-center space-x-1.5 px-3 py-1.5 bg-surface border border-line hover:bg-raised rounded-lg text-xs font-semibold text-ink-soft transition"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
+            <RefreshCw className="w-3.5 h-3.5 text-ink-faint" />
             <span>Refresh</span>
           </button>
         </div>
       </div>
 
       {loadingBatches && batches.length === 0 ? (
-        <div className="p-12 text-center text-xs text-slate-400 animate-pulse">
+        <div className="p-12 text-center text-xs text-ink-faint animate-pulse">
           Loading ingestion batches...
         </div>
       ) : batches.length === 0 ? (
-        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center space-y-3">
-          <Layers className="w-8 h-8 text-slate-400 mx-auto" />
-          <h3 className="text-sm font-bold text-slate-800">No batches uploaded yet</h3>
-          <p className="text-xs text-slate-500">
+        <div className="bg-surface rounded-xl border border-line p-12 text-center space-y-3">
+          <Layers className="w-8 h-8 text-ink-faint mx-auto" />
+          <h3 className="text-sm font-semibold text-ink">No batches uploaded yet</h3>
+          <p className="text-xs text-ink-muted">
             Upload question papers from the Upload page to monitor their extraction.
           </p>
           <Link
             href="/admin/upload"
-            className="inline-block mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-semibold"
+            className="inline-block mt-2 px-4 py-2 bg-primary text-ground rounded-lg text-xs font-semibold"
           >
             Go to Upload
           </Link>
@@ -157,7 +157,7 @@ export default function BatchesMonitorPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Batches List Sidebar */}
           <div className="lg:col-span-4 space-y-3">
-            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+            <h3 className="text-xs font-semibold text-ink-soft">
               Batches ({batches.length})
             </h3>
             <div className="space-y-2 max-h-[75vh] overflow-y-auto pr-1">
@@ -169,24 +169,24 @@ export default function BatchesMonitorPage() {
                     onClick={() => setExpandedBatchId(b.id)}
                     className={`w-full text-left p-3.5 rounded-xl border transition flex flex-col space-y-2 cursor-pointer relative group ${
                       isSelected
-                        ? "bg-white border-blue-500 shadow-sm ring-1 ring-blue-500/20"
-                        : "bg-white border-slate-200 hover:border-slate-300"
+                        ? "bg-surface border-primary ring-1 ring-primary/20"
+                        : "bg-surface border-line hover:border-line-strong"
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-mono text-xs font-bold text-slate-800 truncate max-w-[140px]">
+                      <span className="font-mono text-xs font-semibold text-ink truncate max-w-[140px]">
                         {b.id.substring(0, 16)}...
                       </span>
                       <div className="flex items-center space-x-1.5">
                         <span
-                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                             b.status === "COMPLETED"
-                              ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                              ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/25"
                               : b.status === "PROCESSING"
-                              ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse"
+                              ? "bg-amber-500/10 text-amber-300 border border-amber-500/25 animate-pulse"
                               : b.status === "FAILED"
-                              ? "bg-red-50 text-red-700 border border-red-200"
-                              : "bg-slate-100 text-slate-700"
+                              ? "bg-red-500/10 text-red-300 border border-red-500/25"
+                              : "bg-raised text-ink-soft"
                           }`}
                         >
                           {b.status}
@@ -199,14 +199,14 @@ export default function BatchesMonitorPage() {
                             }
                           }}
                           title="Delete Batch"
-                          className="p-1 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded transition"
+                          className="p-1 text-ink-dim hover:text-red-400 hover:bg-red-500/10 rounded transition"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between text-xs text-slate-500">
+                    <div className="flex items-center justify-between text-xs text-ink-muted">
                       <span>{b.processed_files} / {b.total_files} files processed</span>
                       <span>{new Date(b.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                     </div>
@@ -219,31 +219,31 @@ export default function BatchesMonitorPage() {
           {/* Active Batch Documents Panel */}
           <div className="lg:col-span-8 space-y-4">
             {activeBatchDetail && (
-              <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 space-y-6">
+              <div className="bg-surface rounded-xl border border-line p-5 space-y-6">
                 {/* Batch Header Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line-soft pb-4">
                   <div>
                     <div className="flex items-center space-x-2">
-                      <span className="text-xs text-slate-400 font-medium">Batch</span>
-                      <span className="font-mono text-xs font-bold text-slate-800">
+                      <span className="text-xs text-ink-faint font-medium">Batch</span>
+                      <span className="font-mono text-xs font-semibold text-ink">
                         {activeBatchDetail.id}
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-0.5">
+                    <p className="text-[11px] text-ink-faint mt-0.5">
                       Created at {new Date(activeBatchDetail.created_at).toLocaleString()}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-2">
                     <span
-                      className={`px-2.5 py-1 text-xs font-bold rounded-lg ${
+                      className={`px-2.5 py-1 text-xs font-semibold rounded-lg ${
                         activeBatchDetail.status === "COMPLETED"
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                          ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/25"
                           : activeBatchDetail.status === "PROCESSING"
-                          ? "bg-amber-50 text-amber-700 border border-amber-200 animate-pulse"
+                          ? "bg-amber-500/10 text-amber-300 border border-amber-500/25 animate-pulse"
                           : activeBatchDetail.status === "FAILED"
-                          ? "bg-red-50 text-red-700 border border-red-200"
-                          : "bg-slate-100 text-slate-700"
+                          ? "bg-red-500/10 text-red-300 border border-red-500/25"
+                          : "bg-raised text-ink-soft"
                       }`}
                     >
                       {activeBatchDetail.status}
@@ -254,9 +254,9 @@ export default function BatchesMonitorPage() {
                           deleteBatchMutation.mutate(activeBatchDetail.id);
                         }
                       }}
-                      className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 rounded-lg transition"
+                      className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs font-semibold text-red-300 bg-red-500/10 hover:bg-red-500/15 border border-red-500/25 rounded-lg transition"
                     >
-                      <Trash2 className="w-3.5 h-3.5 text-red-600" />
+                      <Trash2 className="w-3.5 h-3.5 text-red-400" />
                       <span>Delete Batch</span>
                     </button>
                   </div>
@@ -264,35 +264,35 @@ export default function BatchesMonitorPage() {
 
                 {/* Document Cards */}
                 <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+                  <h4 className="text-xs font-semibold text-ink-soft">
                     Paper Files ({activeBatchDetail.documents?.length || 0})
                   </h4>
 
                   {(!activeBatchDetail.documents || activeBatchDetail.documents.length === 0) ? (
-                    <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-lg">
+                    <div className="p-6 text-center text-xs text-ink-faint bg-ground rounded-lg">
                       No documents found in this batch.
                     </div>
                   ) : (
                     activeBatchDetail.documents.map((doc: QuestionPaper) => (
                       <div
                         key={doc.id}
-                        className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3"
+                        className="p-4 bg-ground rounded-xl border border-line space-y-3"
                       >
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center space-x-2">
-                            <FileText className="w-4 h-4 text-blue-600 flex-shrink-0" />
-                            <span className="text-xs font-bold text-slate-800 truncate max-w-sm">
+                            <FileText className="w-4 h-4 text-primary flex-shrink-0" />
+                            <span className="text-xs font-semibold text-ink truncate max-w-sm">
                               {doc.filename}
                             </span>
                           </div>
 
                           <div className="flex items-center space-x-2 text-xs">
-                            <span className="px-2 py-0.5 bg-white border border-slate-200 rounded font-semibold text-slate-700">
+                            <span className="px-2 py-0.5 bg-surface border border-line rounded font-semibold text-ink-soft">
                               {doc.subject_code && doc.subject_name
                                 ? `${doc.subject_code} - ${doc.subject_name}`
                                 : doc.subject_name || doc.subject_code || "Unknown Subject"}
                             </span>
-                            <span className="px-2 py-0.5 bg-white border border-slate-200 rounded font-semibold text-slate-700">
+                            <span className="px-2 py-0.5 bg-surface border border-line rounded font-semibold text-ink-soft">
                               {doc.exam_year} {doc.exam_type}
                             </span>
                           </div>
@@ -300,40 +300,40 @@ export default function BatchesMonitorPage() {
 
                         {/* Pipeline Stage Indicators */}
                         <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
-                          <div className="p-2 bg-white rounded border border-slate-200">
-                            <span className="text-[10px] text-slate-400 uppercase font-medium block">
+                          <div className="p-2 bg-surface rounded border border-line">
+                            <span className="text-[10px] text-ink-faint font-medium block">
                               1. Parse
                             </span>
                             <span className={`font-semibold ${
-                              doc.parser_status === "COMPLETED" ? "text-emerald-600" :
-                              doc.parser_status === "IN_PROGRESS" ? "text-amber-600 animate-pulse" :
-                              doc.parser_status === "FAILED" ? "text-red-600" : "text-slate-500"
+                              doc.parser_status === "COMPLETED" ? "text-emerald-400" :
+                              doc.parser_status === "IN_PROGRESS" ? "text-amber-400 animate-pulse" :
+                              doc.parser_status === "FAILED" ? "text-red-400" : "text-ink-muted"
                             }`}>
                               {doc.parser_status}
                             </span>
                           </div>
 
-                          <div className="p-2 bg-white rounded border border-slate-200">
-                            <span className="text-[10px] text-slate-400 uppercase font-medium block">
+                          <div className="p-2 bg-surface rounded border border-line">
+                            <span className="text-[10px] text-ink-faint font-medium block">
                               2. Segment
                             </span>
                             <span className={`font-semibold ${
-                              doc.extraction_status === "COMPLETED" ? "text-emerald-600" :
-                              doc.extraction_status === "IN_PROGRESS" ? "text-amber-600 animate-pulse" :
-                              doc.extraction_status === "FAILED" ? "text-red-600" : "text-slate-500"
+                              doc.extraction_status === "COMPLETED" ? "text-emerald-400" :
+                              doc.extraction_status === "IN_PROGRESS" ? "text-amber-400 animate-pulse" :
+                              doc.extraction_status === "FAILED" ? "text-red-400" : "text-ink-muted"
                             }`}>
                               {doc.extraction_status}
                             </span>
                           </div>
 
-                          <div className="p-2 bg-white rounded border border-slate-200">
-                            <span className="text-[10px] text-slate-400 uppercase font-medium block">
+                          <div className="p-2 bg-surface rounded border border-line">
+                            <span className="text-[10px] text-ink-faint font-medium block">
                               3. Index
                             </span>
                             <span className={`font-semibold ${
-                              doc.indexing_status === "COMPLETED" ? "text-emerald-600" :
-                              doc.indexing_status === "IN_PROGRESS" ? "text-amber-600 animate-pulse" :
-                              doc.indexing_status === "FAILED" ? "text-red-600" : "text-slate-500"
+                              doc.indexing_status === "COMPLETED" ? "text-emerald-400" :
+                              doc.indexing_status === "IN_PROGRESS" ? "text-amber-400 animate-pulse" :
+                              doc.indexing_status === "FAILED" ? "text-red-400" : "text-ink-muted"
                             }`}>
                               {doc.indexing_status}
                             </span>
@@ -342,17 +342,17 @@ export default function BatchesMonitorPage() {
 
                         {/* Error info if failed */}
                         {doc.error_message && (
-                          <div className="p-2.5 bg-red-50 text-red-700 rounded text-xs border border-red-200 flex items-start space-x-2">
+                          <div className="p-2.5 bg-red-500/10 text-red-300 rounded text-xs border border-red-500/25 flex items-start space-x-2">
                             <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                             <span>{doc.error_message}</span>
                           </div>
                         )}
 
                         {/* Footer stats & actions */}
-                        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60">
-                          <span className="text-slate-600">
+                        <div className="flex items-center justify-between text-xs pt-1 border-t border-line/60">
+                          <span className="text-ink-soft">
                             Questions Extracted:{" "}
-                            <strong className="text-slate-900 font-bold">
+                            <strong className="text-ink font-semibold">
                               {doc.question_count}
                             </strong>
                           </span>
@@ -362,7 +362,7 @@ export default function BatchesMonitorPage() {
                               onClick={() => reprocessDocMutation.mutate(doc.id)}
                               disabled={reprocessDocMutation.isPending}
                               title="Re-run parsing & question segmentation pipeline"
-                              className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs text-slate-600 hover:text-blue-700 hover:bg-blue-50 border border-slate-200 rounded-lg font-medium transition"
+                              className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs text-ink-soft hover:text-primary hover:bg-primary/10 border border-line rounded-lg font-medium transition"
                             >
                               <RotateCcw className={`w-3.5 h-3.5 ${reprocessDocMutation.isPending ? "animate-spin" : ""}`} />
                               <span>Re-parse</span>
@@ -370,7 +370,7 @@ export default function BatchesMonitorPage() {
 
                             <Link
                               href={`/admin/staging?document_id=${doc.id}`}
-                              className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg font-semibold transition"
+                              className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs text-primary bg-primary/10 hover:bg-primary/15 border border-primary/30 rounded-lg font-semibold transition"
                             >
                               <span>Review in Staging</span>
                               <ExternalLink className="w-3.5 h-3.5" />
@@ -384,9 +384,9 @@ export default function BatchesMonitorPage() {
                               }}
                               disabled={deleteDocMutation.isPending}
                               title="Delete Question Paper"
-                              className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs text-slate-500 hover:text-red-700 hover:bg-red-50 border border-slate-200 rounded-lg font-medium transition"
+                              className="inline-flex items-center space-x-1 px-2.5 py-1 text-xs text-ink-muted hover:text-red-300 hover:bg-red-500/10 border border-line rounded-lg font-medium transition"
                             >
-                              <Trash2 className="w-3.5 h-3.5 text-slate-400 hover:text-red-600" />
+                              <Trash2 className="w-3.5 h-3.5 text-ink-faint hover:text-red-400" />
                               <span>Delete</span>
                             </button>
                           </div>

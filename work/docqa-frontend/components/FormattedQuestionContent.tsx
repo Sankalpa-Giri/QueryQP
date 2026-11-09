@@ -114,7 +114,7 @@ export function renderInline(text: string): React.ReactNode {
       return (
         <code
           key={idx}
-          className="px-1.5 py-0.5 rounded bg-slate-100 text-blue-700 font-mono text-[11px] border border-slate-200"
+          className="px-1.5 py-0.5 rounded bg-raised text-primary font-mono text-[11px] border border-line"
         >
           {part.slice(1, -1)}
         </code>
@@ -124,7 +124,7 @@ export function renderInline(text: string): React.ReactNode {
     // Bold text: ** ... **
     if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
       return (
-        <strong key={idx} className="font-bold text-slate-900">
+        <strong key={idx} className="font-semibold text-ink">
           {part.slice(2, -2)}
         </strong>
       );
@@ -271,11 +271,11 @@ export function FormattedQuestionContent({
   const blocks = parseMarkdownBlocks(text);
 
   if (blocks.length === 0) {
-    return <div className={`text-slate-800 text-sm leading-relaxed whitespace-pre-wrap ${className}`}>{text}</div>;
+    return <div className={`text-ink text-sm leading-relaxed whitespace-pre-wrap ${className}`}>{text}</div>;
   }
 
   return (
-    <div className={`space-y-3.5 text-slate-800 ${className}`}>
+    <div className={`space-y-3.5 text-ink ${className}`}>
       {blocks.map((block, idx) => {
         if (block.type === "paragraph") {
           return (
@@ -294,28 +294,28 @@ export function FormattedQuestionContent({
           return (
             <div
               key={idx}
-              className="my-3 rounded-xl border border-slate-200 overflow-hidden bg-slate-50/50 shadow-xs"
+              className="my-3 rounded-xl border border-line overflow-hidden bg-ground/50"
             >
-              <div className="p-2.5 border-b border-slate-200/80 flex items-center justify-between text-xs text-slate-600 bg-slate-100/70 px-3.5">
-                <span className="font-semibold text-slate-800 flex items-center gap-1.5">
-                  <ImageIcon className="w-3.5 h-3.5 text-blue-600" />
+              <div className="p-2.5 border-b border-line/80 flex items-center justify-between text-xs text-ink-soft bg-raised/70 px-3.5">
+                <span className="font-semibold text-ink flex items-center gap-1.5">
+                  <ImageIcon className="w-3.5 h-3.5 text-primary" />
                   {block.alt || "Question Diagram / Figure"}
                 </span>
                 <a
                   href={resolvedSrc}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 text-[11px] font-semibold flex items-center gap-1 hover:underline"
+                  className="text-primary hover:text-primary text-[11px] font-semibold flex items-center gap-1 hover:underline"
                 >
                   <span>Open Full Diagram</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>
-              <div className="p-3 flex justify-center bg-white">
+              <div className="p-3 flex justify-center bg-surface">
                 <img
                   src={resolvedSrc}
                   alt={block.alt}
-                  className="max-h-[380px] w-auto object-contain rounded-lg border border-slate-100 cursor-zoom-in hover:opacity-95 transition"
+                  className="max-h-[380px] w-auto object-contain rounded-lg border border-line-soft cursor-zoom-in hover:opacity-95 transition"
                   onClick={() => window.open(resolvedSrc, "_blank")}
                 />
               </div>
@@ -327,11 +327,11 @@ export function FormattedQuestionContent({
           return (
             <div
               key={idx}
-              className="overflow-x-auto my-3 rounded-xl border border-slate-200/90 shadow-xs bg-white"
+              className="overflow-x-auto my-3 rounded-xl border border-line/90 bg-surface"
             >
-              <table className="min-w-full divide-y divide-slate-200 text-xs">
+              <table className="min-w-full divide-y divide-line text-xs">
                 <thead>
-                  <tr className="bg-slate-100/80 text-slate-800">
+                  <tr className="bg-raised/80 text-ink">
                     {block.headers.map((h, hIdx) => {
                       const align = block.alignments[hIdx] || "left";
                       const alignClass =
@@ -343,7 +343,7 @@ export function FormattedQuestionContent({
                       return (
                         <th
                           key={hIdx}
-                          className={`px-3.5 py-2.5 font-bold text-slate-800 uppercase tracking-wider text-[11px] border-r border-slate-200 last:border-r-0 ${alignClass}`}
+                          className={`px-3.5 py-2.5 font-semibold text-ink text-[11px] border-r border-line last:border-r-0 ${alignClass}`}
                         >
                           {renderInline(h)}
                         </th>
@@ -351,11 +351,11 @@ export function FormattedQuestionContent({
                     })}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 bg-white">
+                <tbody className="divide-y divide-line-soft bg-surface">
                   {block.rows.map((row, rIdx) => (
                     <tr
                       key={rIdx}
-                      className="hover:bg-blue-50/40 transition-colors even:bg-slate-50/50"
+                      className="hover:bg-primary/10 transition-colors even:bg-ground/50"
                     >
                       {row.map((cell, cIdx) => {
                         const align = block.alignments[cIdx] || "left";
@@ -368,7 +368,7 @@ export function FormattedQuestionContent({
                         return (
                           <td
                             key={cIdx}
-                            className={`px-3.5 py-2 font-mono text-[11px] md:text-xs text-slate-700 border-r border-slate-200/70 last:border-r-0 whitespace-nowrap ${alignClass}`}
+                            className={`px-3.5 py-2 font-mono text-[11px] md:text-xs text-ink-soft border-r border-line/70 last:border-r-0 whitespace-nowrap ${alignClass}`}
                           >
                             {renderInline(cell)}
                           </td>
@@ -386,10 +386,10 @@ export function FormattedQuestionContent({
           return (
             <div
               key={idx}
-              className="my-3 rounded-xl bg-slate-950 text-slate-100 font-mono text-xs md:text-sm overflow-x-auto border border-slate-800 shadow-md p-3.5"
+              className="my-3 rounded-xl bg-ground text-ink font-mono text-xs md:text-sm overflow-x-auto border border-line-strong p-3.5"
             >
-              <div className="flex items-center space-x-1.5 text-slate-400 text-[11px] mb-2 pb-1.5 border-b border-slate-800/80 font-sans">
-                <Code2 className="w-3.5 h-3.5 text-blue-400" />
+              <div className="flex items-center space-x-1.5 text-ink-faint text-[11px] mb-2 pb-1.5 border-b border-line-strong/80 font-sans">
+                <Code2 className="w-3.5 h-3.5 text-primary" />
                 <span>{block.lang ? block.lang.toUpperCase() : "Code"} Snippet</span>
               </div>
               <pre className="whitespace-pre-wrap">{block.code}</pre>
@@ -409,12 +409,12 @@ export function FormattedQuestionContent({
                 {block.options.map((opt, oIdx) => (
                   <div
                     key={oIdx}
-                    className="flex items-start space-x-2.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50/80 hover:bg-blue-50/40 hover:border-blue-200 transition"
+                    className="flex items-start space-x-2.5 px-3.5 py-2.5 rounded-xl border border-line bg-ground/80 hover:bg-primary/10 hover:border-primary/30 transition"
                   >
-                    <span className="w-6 h-6 rounded-md bg-blue-100 text-blue-800 font-bold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <span className="w-6 h-6 rounded-md bg-raised text-ink-soft font-semibold text-xs flex items-center justify-center flex-shrink-0 mt-0.5">
                       {opt.label}
                     </span>
-                    <span className="text-xs md:text-sm font-medium text-slate-800">
+                    <span className="text-xs md:text-sm font-medium text-ink">
                       {renderInline(opt.text)}
                     </span>
                   </div>

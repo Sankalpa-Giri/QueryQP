@@ -1,4 +1,8 @@
 /** @type {import('tailwindcss').Config} */
+// All colours come from config/theme.json so the palette lives in ONE place.
+const theme = require("./config/theme.json");
+const c = theme.colors;
+
 module.exports = {
   darkMode: ["class"],
   content: [
@@ -10,31 +14,33 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        border: "hsl(var(--border, 214.3 31.8% 91.4%))",
-        input: "hsl(var(--input, 214.3 31.8% 91.4%))",
-        ring: "hsl(var(--ring, 222.2 84% 4.9%))",
-        background: "hsl(var(--background, 0 0% 100%))",
-        foreground: "hsl(var(--foreground, 222.2 84% 4.9%))",
-        primary: {
-          DEFAULT: "hsl(var(--primary, 221.2 83.2% 53.3%))",
-          foreground: "hsl(var(--primary-foreground, 210 40% 98%))",
-        },
-        secondary: {
-          DEFAULT: "hsl(var(--secondary, 210 40% 96.1%))",
-          foreground: "hsl(var(--secondary-foreground, 222.2 47.4% 11.2%))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted, 210 40% 96.1%))",
-          foreground: "hsl(var(--muted-foreground, 215.4 16.3% 46.9%))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent, 210 40% 96.1%))",
-          foreground: "hsl(var(--accent-foreground, 222.2 47.4% 11.2%))",
-        },
-        destructive: {
-          DEFAULT: "hsl(var(--destructive, 0 84.2% 60.2%))",
-          foreground: "hsl(var(--destructive-foreground, 210 40% 98%))",
-        },
+        // surfaces, from page background up to hovered controls
+        ground: c.ground,
+        frame: c.frame,
+        surface: c.surface,
+        raised: c.raised,
+        lift: c.lift,
+        // hairlines
+        line: { DEFAULT: c.line, soft: c.lineSoft, strong: c.lineStrong },
+        // text
+        ink: { DEFAULT: c.ink, soft: c.inkSoft, muted: c.inkMuted, faint: c.inkFaint, dim: c.inkDim },
+        // the single accent
+        primary: { DEFAULT: c.primary, hover: c.primaryHover, foreground: c.ground },
+        // ten-stop strip used by the intro
+        ribbon: Object.fromEntries(theme.ribbon.map((hex, i) => [String(i), hex])),
+        // legacy names kept so nothing that referenced them breaks
+        border: c.line,
+        input: c.line,
+        ring: c.primary,
+        background: c.ground,
+        foreground: c.ink,
+      },
+      borderColor: { DEFAULT: c.line },
+      divideColor: { DEFAULT: c.line },
+      ringColor: { DEFAULT: c.primary },
+      fontFamily: {
+        sans: ["var(--font-geist-sans)", "Inter", "system-ui", "sans-serif"],
+        mono: ["var(--font-geist-mono)", "ui-monospace", "SFMono-Regular", "Menlo", "monospace"],
       },
       borderRadius: {
         lg: "var(--radius, 0.5rem)",
