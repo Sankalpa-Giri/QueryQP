@@ -2,7 +2,8 @@ from typing import Any
 
 import pymupdf
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
+from app.core.config import settings
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_admin_user, require_admin_or_superadmin
@@ -245,6 +246,12 @@ def stream_document_file(document_id: str, request: Request, db: Session = Depen
     doc = db.query(QuestionPaper).filter(QuestionPaper.id == document_id).first()
     if not doc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found.")
+
+    # If S3 is active, redirect directly to secure presigned S3 URL to completely save EC2 bandwidth & disk
+    if settings.STORAGE_BACKEND == "s3" and settings.AWS_S3_BUCKET:
+        presigned_url = storage_service.generate_presigned_url(doc.storage_key, filename=doc.filename, inline=True)
+        if presigned_url:
+            return RedirectResponse(url=presigned_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
 
     updated_ts = int(doc.updated_at.timestamp()) if hasattr(doc, "updated_at") and doc.updated_at else 0
     etag = f'W/"doc-{document_id}-{updated_ts}"'

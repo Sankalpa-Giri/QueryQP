@@ -14,7 +14,8 @@ from fastapi import (
     UploadFile,
     status,
 )
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
+from app.core.config import settings
 from sqlalchemy.orm import Session
 
 from app.core.security import get_current_admin_user, require_admin_or_superadmin
@@ -104,6 +105,11 @@ def stream_slide_file(slide_id: str, db: Session = Depends(get_db)):
     if not slide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Slide not found.")
 
+    if settings.STORAGE_BACKEND == "s3" and settings.AWS_S3_BUCKET:
+        presigned_url = storage_service.generate_presigned_url(slide.storage_key, filename=slide.filename, inline=True)
+        if presigned_url:
+            return RedirectResponse(url=presigned_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
     file_path = storage_service.get_slide_path(slide.storage_key)
     if not file_path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Slide file not found on server.")
@@ -131,12 +137,17 @@ def download_slide_file(slide_id: str, db: Session = Depends(get_db)):
     if not slide:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Slide not found.")
 
+    slide.download_count = (slide.download_count or 0) + 1
+    db.commit()
+
+    if settings.STORAGE_BACKEND == "s3" and settings.AWS_S3_BUCKET:
+        presigned_url = storage_service.generate_presigned_url(slide.storage_key, filename=slide.filename, inline=False)
+        if presigned_url:
+            return RedirectResponse(url=presigned_url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+
     file_path = storage_service.get_slide_path(slide.storage_key)
     if not file_path.is_file():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Slide file not found on server.")
-
-    slide.download_count = (slide.download_count or 0) + 1
-    db.commit()
 
     content_type = "application/pdf"
     ext = (slide.file_type or "pdf").lower()

@@ -194,6 +194,10 @@ def _execute_document_pipeline(document_id: str, db: Session, parser_type: str |
 
         logger.info("Document pipeline completed successfully for %s (%d questions)", doc.id, len(created_questions))
 
+        # Free up local disk space by purging local copy if mirrored in S3
+        storage_service.cleanup_local_file(doc.storage_key)
+        storage_service.cleanup_local_file(doc.markdown_key)
+
         # Update batch counters
         _update_batch_progress(doc.batch_id, db)
         return True

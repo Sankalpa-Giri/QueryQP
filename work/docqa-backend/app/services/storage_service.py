@@ -129,19 +129,45 @@ class StorageService:
 
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Stored document file not found.")
 
-    def generate_presigned_url(self, storage_key: str, expires_in: int = 3600) -> str | None:
-        """Generate a secure pre-signed AWS S3 URL for direct client downloading if S3 is active."""
+    def generate_presigned_url(
+        self,
+        storage_key: str,
+        expires_in: int = 3600,
+        filename: str | None = None,
+        inline: bool = True,
+    ) -> str | None:
+        """Generate a secure pre-signed AWS S3 URL for direct client downloading/viewing if S3 is active."""
         if self.s3_client and settings.AWS_S3_BUCKET:
             try:
+                params: dict[str, Any] = {"Bucket": settings.AWS_S3_BUCKET, "Key": storage_key}
+                if filename:
+                    disposition = "inline" if inline else "attachment"
+                    params["ResponseContentDisposition"] = f'{disposition}; filename="{filename}"'
                 url = self.s3_client.generate_presigned_url(
                     "get_object",
-                    Params={"Bucket": settings.AWS_S3_BUCKET, "Key": storage_key},
+                    Params=params,
                     ExpiresIn=expires_in,
                 )
                 return url
             except Exception as e:
                 logger.warning("Error generating presigned S3 URL: %s", e)
         return None
+
+    def cleanup_local_file(self, storage_key: str | None) -> bool:
+        """Safely delete local cached file if S3 storage is active, keeping EC2 disk completely free."""
+        if not storage_key:
+            return False
+        if not (self.s3_client and settings.AWS_S3_BUCKET):
+            return False
+        try:
+            local_path = self.base_dir / storage_key
+            if local_path.is_file():
+                local_path.unlink(missing_ok=True)
+                logger.info("Purged local cache for %s (stored in S3)", storage_key)
+                return True
+        except Exception as e:
+            logger.warning("Failed to purge local file %s: %s", storage_key, e)
+        return False
 
     def save_markdown(self, document_id: str, markdown_content: str) -> str:
         """Persist intermediate Markdown representation."""
